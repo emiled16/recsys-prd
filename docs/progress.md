@@ -51,3 +51,4 @@ This is the append-only execution log for the recommendation system project. Eac
 [2026-04-01 23:36:00] [plan v1.1] [DONE] T22: Added parity and freshness validation for the local online feature store with report output and unit coverage
 [2026-04-01 23:47:00] [plan v1.1] [START] T23: Define multimodal representation strategy
 [2026-04-01 23:47:00] [plan v1.1] [DONE] T23: Added a multimodal retrieval strategy document plus code-level modality and fusion strategy definitions
+[2026-04-01 22:55:10] [extra request] [DONE] Outside plan: pinned backend Python to 3.13.0 in `.python-version` and rebuilt `backend/.venv` with the local Python 3.13 interpreter
