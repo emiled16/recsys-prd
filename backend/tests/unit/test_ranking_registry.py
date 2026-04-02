@@ -14,6 +14,59 @@ from recsys_prd.ranking.registry import register_candidate_ranking_model
 from recsys_prd.ranking.training import train_local_ranking_model
 from recsys_prd.retrieval.embedding_pipeline import build_embedding_artifacts
 from recsys_prd.retrieval.vector_index import build_vector_indexes
+from recsys_prd.services.mlflow_store import MLflowModelRegistrar, MLflowRunLogger
+
+
+class FakeRunInfo:
+    def __init__(self, run_id: str) -> None:
+        self.run_id = run_id
+
+
+class FakeRun:
+    def __init__(self, run_id: str) -> None:
+        self.info = FakeRunInfo(run_id)
+
+
+class FakeModelVersion:
+    def __init__(self, version: str) -> None:
+        self.version = version
+
+
+class FakeMlflowClient:
+    def __init__(self) -> None:
+        self.params: dict[str, object] = {}
+        self.metrics: dict[str, float] = {}
+        self.artifacts: list[str] = []
+        self.model_versions: list[tuple[str, str]] = []
+
+    def create_run(self, experiment_id: str, tags: dict[str, str]) -> FakeRun:
+        del experiment_id, tags
+        return FakeRun("run-123")
+
+    def log_param(self, run_id: str, key: str, value: object) -> None:
+        del run_id
+        self.params[key] = value
+
+    def log_metric(self, run_id: str, key: str, value: float) -> None:
+        del run_id
+        self.metrics[key] = value
+
+    def log_artifact(self, run_id: str, path: str) -> None:
+        del run_id
+        self.artifacts.append(path)
+
+    def create_registered_model(self, name: str) -> None:
+        del name
+        return None
+
+    def create_model_version(self, name: str, source: str, run_id: str) -> FakeModelVersion:
+        del run_id
+        self.model_versions.append((name, source))
+        return FakeModelVersion("1")
+
+    def set_model_version_tag(self, name: str, version: str, key: str, value: str) -> None:
+        del name, version, key, value
+        return None
 
 
 class RankingRegistryTests(unittest.TestCase):
@@ -42,10 +95,12 @@ class RankingRegistryTests(unittest.TestCase):
             negative_sample_count=2,
             max_seed_articles=2,
         )
+        self.mlflow_client = FakeMlflowClient()
         self.training_outputs = train_local_ranking_model(
             normalized_root=self.normalized_root,
             indexes_root=self.indexes_root,
             models_root=self.models_root,
+            mlflow_logger=MLflowRunLogger(client=self.mlflow_client),
         )
 
     def tearDown(self) -> None:
@@ -57,6 +112,7 @@ class RankingRegistryTests(unittest.TestCase):
             models_root=self.models_root,
             normalized_root=self.normalized_root,
             indexes_root=self.indexes_root,
+            mlflow_registrar=MLflowModelRegistrar(client=self.mlflow_client),
         )
 
         registration = json.loads(outputs["registration"].read_text(encoding="utf-8"))
@@ -76,6 +132,7 @@ class RankingRegistryTests(unittest.TestCase):
             registration["lineage"]["training_dataset_path"],
             training_manifest["dataset"]["path"],
         )
+        self.assertEqual(registration["mlflow_model"]["version"], "1")
         self.assertEqual(latest_candidate["registration_id"], registration["registration_id"])
         self.assertEqual(len(registry_log), 1)
         self.assertEqual(registry_log[0]["registration_id"], registration["registration_id"])

@@ -83,3 +83,5 @@ This is the append-only execution log for the recommendation system project. Eac
 [2026-04-02 03:08:00] [plan v1.4] [DONE] T63: Expanded the MLflow run logger to support nested payload flattening for training params and metrics while preserving artifact logging
 [2026-04-02 03:16:00] [plan v1.4] [START] T64: Refactor train_local_ranking_model to log training results through MLflowRunLogger
 [2026-04-02 03:16:00] [plan v1.4] [DONE] T64: Updated ranking training to emit MLflow run metadata, params, metrics, and artifacts while preserving local manifests and offline fallback retrieval
+[2026-04-02 03:24:00] [plan v1.4] [START] T65: Implement an MLflow model registrar for trained ranking models
+[2026-04-02 03:24:00] [plan v1.4] [DONE] T65: Updated ranking registration to call the MLflow model registrar and persist MLflow model-version metadata alongside local registry lineage
