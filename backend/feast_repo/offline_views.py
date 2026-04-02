@@ -9,10 +9,7 @@ from feast.types import String
 
 from feast_repo.entities import article, customer
 from feast_repo.sources import (
-    customers_normalized_source,
     point_in_time_training_dataset_source,
-    product_images_manifest_source,
-    products_normalized_source,
 )
 
 customer_profile_base = FeatureView(
@@ -20,14 +17,14 @@ customer_profile_base = FeatureView(
     entities=[customer],
     ttl=timedelta(days=3650),
     schema=[
-        Field(name="age", dtype=String),
-        Field(name="club_member_status", dtype=String),
-        Field(name="fashion_news_frequency", dtype=String),
-        Field(name="fn_flag", dtype=String),
-        Field(name="active_flag", dtype=String),
+        Field(name="customer_age", dtype=String),
+        Field(name="customer_club_member_status", dtype=String),
+        Field(name="customer_fashion_news_frequency", dtype=String),
+        Field(name="customer_has_fn_flag", dtype=String),
+        Field(name="customer_has_active_flag", dtype=String),
     ],
-    online=True,
-    source=customers_normalized_source,
+    online=False,
+    source=point_in_time_training_dataset_source,
 )
 
 product_catalog_base = FeatureView(
@@ -35,27 +32,16 @@ product_catalog_base = FeatureView(
     entities=[article],
     ttl=timedelta(days=3650),
     schema=[
-        Field(name="product_type_name", dtype=String),
-        Field(name="product_group_name", dtype=String),
-        Field(name="colour_group_name", dtype=String),
-        Field(name="department_name", dtype=String),
-        Field(name="index_group_name", dtype=String),
-        Field(name="detail_desc", dtype=String),
+        Field(name="article_product_type_name", dtype=String),
+        Field(name="article_product_group_name", dtype=String),
+        Field(name="article_colour_group_name", dtype=String),
+        Field(name="article_department_name", dtype=String),
+        Field(name="article_index_group_name", dtype=String),
+        Field(name="article_has_detail_desc", dtype=String),
+        Field(name="article_has_image", dtype=String),
     ],
-    online=True,
-    source=products_normalized_source,
-)
-
-product_image_manifest_base = FeatureView(
-    name="product_image_manifest_base",
-    entities=[article],
-    ttl=timedelta(days=3650),
-    schema=[
-        Field(name="image_path", dtype=String),
-        Field(name="image_kind", dtype=String),
-    ],
-    online=True,
-    source=product_images_manifest_source,
+    online=False,
+    source=point_in_time_training_dataset_source,
 )
 
 customer_activity_base = FeatureView(
@@ -117,17 +103,19 @@ def customer_profile_features(inputs: pd.DataFrame) -> pd.DataFrame:
     """Expose the logical customer profile fields expected by the current registry."""
     return pd.DataFrame(
         {
-            "age": inputs["age"].fillna(""),
-            "club_member_status": inputs["club_member_status"].fillna(""),
-            "fashion_news_frequency": inputs["fashion_news_frequency"].fillna(""),
-            "has_fn_flag": inputs["fn_flag"].fillna("").replace("", "0"),
-            "has_active_flag": inputs["active_flag"].fillna("").replace("", "0"),
+            "age": inputs["customer_age"].fillna(""),
+            "club_member_status": inputs["customer_club_member_status"].fillna(""),
+            "fashion_news_frequency": inputs["customer_fashion_news_frequency"].fillna(""),
+            "has_fn_flag": inputs["customer_has_fn_flag"].fillna("").replace("", "0"),
+            "has_active_flag": inputs["customer_has_active_flag"]
+            .fillna("")
+            .replace("", "0"),
         }
     )
 
 
 @on_demand_feature_view(
-    sources=[product_catalog_base, product_image_manifest_base],
+    sources=[product_catalog_base],
     schema=[
         Field(name="product_type_name", dtype=String),
         Field(name="product_group_name", dtype=String),
@@ -140,17 +128,15 @@ def customer_profile_features(inputs: pd.DataFrame) -> pd.DataFrame:
 )
 def article_catalog_features(inputs: pd.DataFrame) -> pd.DataFrame:
     """Expose the logical article catalog fields expected by the current registry."""
-    detail_desc = inputs["detail_desc"].fillna("")
-    image_path = inputs["image_path"].fillna("")
     return pd.DataFrame(
         {
-            "product_type_name": inputs["product_type_name"].fillna(""),
-            "product_group_name": inputs["product_group_name"].fillna(""),
-            "colour_group_name": inputs["colour_group_name"].fillna(""),
-            "department_name": inputs["department_name"].fillna(""),
-            "index_group_name": inputs["index_group_name"].fillna(""),
-            "has_detail_desc": detail_desc.ne("").map({True: "1", False: "0"}),
-            "has_image": image_path.ne("").map({True: "1", False: "0"}),
+            "product_type_name": inputs["article_product_type_name"].fillna(""),
+            "product_group_name": inputs["article_product_group_name"].fillna(""),
+            "colour_group_name": inputs["article_colour_group_name"].fillna(""),
+            "department_name": inputs["article_department_name"].fillna(""),
+            "index_group_name": inputs["article_index_group_name"].fillna(""),
+            "has_detail_desc": inputs["article_has_detail_desc"].fillna("").replace("", "0"),
+            "has_image": inputs["article_has_image"].fillna("").replace("", "0"),
         }
     )
 

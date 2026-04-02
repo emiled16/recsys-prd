@@ -28,8 +28,9 @@ class FakeFeastStore:
         self.request = None
 
     def get_historical_features(self, *, entity_df, features, full_feature_names):
+        entity_frame = entity_df.compute() if hasattr(entity_df, "compute") else entity_df.copy()
         self.request = {
-            "entity_df": entity_df.copy(),
+            "entity_df": entity_frame,
             "features": list(features),
             "full_feature_names": full_feature_names,
         }

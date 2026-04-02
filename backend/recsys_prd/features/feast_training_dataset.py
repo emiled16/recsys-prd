@@ -7,7 +7,13 @@ from feast import FeatureStore
 
 from recsys_prd.config import AppSettings, get_app_settings
 from recsys_prd.features.feast_store import feast_repo_objects
-from recsys_prd.features.training_dataset import TRAINING_FIELDS, load_training_inputs
+from recsys_prd.features.training_dataset import (
+    TRAINING_FIELDS,
+    load_training_inputs,
+)
+from recsys_prd.features.training_dataset import (
+    build_point_in_time_training_dataset as build_baseline_point_in_time_training_dataset,
+)
 from recsys_prd.io.json_ops import write_json
 from recsys_prd.normalization.writer import write_dataset_bundle
 
@@ -103,31 +109,21 @@ class FeastPointInTimeDatasetBuilder:
         normalized_root = normalized_root or self.settings.paths.normalized_root
         features_root = features_root or self.settings.paths.features_offline_root
         _, _, _, ordered_transactions = load_training_inputs(normalized_root)
-
-        entity_df = pd.DataFrame(
-            [
-                {
-                    "event_timestamp": transaction["event_time"],
-                    "customer_id": transaction["customer_id"],
-                    "article_id": transaction["article_id"],
-                }
-                for transaction in ordered_transactions
-            ]
-        )
-        store = self._feature_store()
-        retrieval_job = store.get_historical_features(
-            entity_df=entity_df,
-            features=FEAST_FEATURE_REFS,
-            full_feature_names=True,
-        )
-        retrieved_rows = retrieval_job.to_df().fillna("").to_dict(orient="records")
-        if len(retrieved_rows) != len(ordered_transactions):
-            raise ValueError("Feast historical retrieval row count does not match label rows.")
-
-        rows = [
-            self._build_training_row(transaction=transaction, feast_row=feast_row)
-            for transaction, feast_row in zip(ordered_transactions, retrieved_rows, strict=True)
+        requests = [
+            {
+                "event_id": transaction["event_id"],
+                "event_time": transaction["event_time"],
+                "customer_id": transaction["customer_id"],
+                "target_article_id": transaction["article_id"],
+                "candidate_article_id": transaction["article_id"],
+            }
+            for transaction in ordered_transactions
         ]
+        rows = self.build_training_rows(
+            requests=requests,
+            normalized_root=normalized_root,
+            features_root=features_root,
+        )
 
         dataset_path = write_dataset_bundle(
             dataset_dir=features_root / "training_dataset",
@@ -147,17 +143,68 @@ class FeastPointInTimeDatasetBuilder:
         )
         return dataset_path
 
-    def _feature_store(self) -> FeatureStore:
+    def build_training_rows(
+        self,
+        *,
+        requests: list[dict[str, str]],
+        normalized_root: Path | None = None,
+        features_root: Path | None = None,
+    ) -> list[dict[str, str]]:
+        normalized_root = normalized_root or self.settings.paths.normalized_root
+        features_root = features_root or self.settings.paths.features_offline_root
+        self._ensure_bootstrap_sources(
+            normalized_root=normalized_root,
+            features_root=features_root,
+        )
+        effective_settings = self._settings_for_paths(
+            normalized_root=normalized_root,
+            features_root=features_root,
+        )
+
+        entity_df = pd.DataFrame(
+            [
+                {
+                    "event_timestamp": request["event_time"],
+                    "customer_id": request["customer_id"],
+                    "article_id": request["candidate_article_id"],
+                }
+                for request in requests
+            ]
+        )
+        entity_df["event_timestamp"] = pd.to_datetime(entity_df["event_timestamp"], utc=True)
+        if not hasattr(pd.DataFrame, "persist"):
+            pd.DataFrame.persist = lambda self: self
+        if not hasattr(pd.DataFrame, "compute"):
+            pd.DataFrame.compute = lambda self: self
+        store = self._feature_store(settings=effective_settings)
+        retrieval_job = store.get_historical_features(
+            entity_df=entity_df,
+            features=FEAST_FEATURE_REFS,
+            full_feature_names=True,
+        )
+        retrieved_rows = retrieval_job.to_df().fillna("").to_dict(orient="records")
+        if len(retrieved_rows) != len(requests):
+            raise ValueError("Feast historical retrieval row count does not match label rows.")
+
+        return [
+            self._build_training_row(request=request, feast_row=feast_row)
+            for request, feast_row in zip(requests, retrieved_rows, strict=True)
+        ]
+
+    def _feature_store(self, *, settings: AppSettings) -> FeatureStore:
         if self.store is not None:
             return self.store
-        store = FeatureStore(repo_path=str(self.settings.paths.feast_repo_root))
-        store.apply(objects=feast_repo_objects(), partial=False)
+        store = FeatureStore(repo_path=str(settings.paths.feast_repo_root))
+        store.apply(
+            objects=feast_repo_objects(include_online=False, settings=settings),
+            partial=False,
+        )
         return store
 
     def _build_training_row(
         self,
         *,
-        transaction: dict[str, str],
+        request: dict[str, str],
         feast_row: dict[str, object],
     ) -> dict[str, str]:
         feature_values = {
@@ -165,13 +212,51 @@ class FeastPointInTimeDatasetBuilder:
             for feast_field, training_field in FEAST_TO_TRAINING_FIELD.items()
         }
         return {
-            "label_event_id": transaction["event_id"],
-            "label_timestamp": transaction["event_time"],
-            "customer_id": transaction["customer_id"],
-            "article_id": transaction["article_id"],
-            "label_purchase": "1",
+            "label_event_id": request["event_id"],
+            "label_timestamp": request["event_time"],
+            "customer_id": request["customer_id"],
+            "article_id": request["candidate_article_id"],
+            "label_purchase": (
+                "1"
+                if request["candidate_article_id"] == request["target_article_id"]
+                else "0"
+            ),
             **feature_values,
         }
+
+    def _ensure_bootstrap_sources(
+        self,
+        *,
+        normalized_root: Path,
+        features_root: Path,
+    ) -> None:
+        dataset_path = features_root / "training_dataset" / "point_in_time_training_dataset.parquet"
+        if dataset_path.exists():
+            return
+        build_baseline_point_in_time_training_dataset(
+            normalized_root=normalized_root,
+            features_root=features_root,
+        )
+
+    def _settings_for_paths(
+        self,
+        *,
+        normalized_root: Path,
+        features_root: Path,
+    ) -> AppSettings:
+        if (
+            normalized_root == self.settings.paths.normalized_root
+            and features_root == self.settings.paths.features_offline_root
+        ):
+            return self.settings
+        paths = self.settings.paths.model_copy(
+            update={
+                "normalized_root": normalized_root,
+                "features_offline_root": features_root,
+                "features_root": features_root.parent,
+            }
+        )
+        return self.settings.model_copy(update={"paths": paths})
 
     @staticmethod
     def _stringify(value: object) -> str:
