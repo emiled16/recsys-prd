@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+import importlib
+import os
 from datetime import datetime, timezone
 
 from feast import FeatureStore
@@ -7,25 +9,36 @@ from feast import FeatureStore
 from recsys_prd.config import AppSettings, get_app_settings
 
 
-def feast_repo_objects() -> list:
-    """Return the Feast repo objects in dependency-safe apply order."""
+def _reload_feast_repo_modules(settings: AppSettings):
+    os.environ["RECSYS_PRD_PROJECT_ROOT"] = str(settings.paths.project_root)
+    os.environ["RECSYS_PRD_BACKEND_ROOT"] = str(settings.paths.backend_root)
+    os.environ["RECSYS_PRD_DATA_ROOT"] = str(settings.paths.data_root)
+    os.environ["RECSYS_PRD_NORMALIZED_ROOT"] = str(settings.paths.normalized_root)
+    os.environ["RECSYS_PRD_FEATURES_ROOT"] = str(settings.paths.features_root)
+    os.environ["RECSYS_PRD_FEATURES_OFFLINE_ROOT"] = str(settings.paths.features_offline_root)
+    os.environ["RECSYS_PRD_FEAST_REPO_ROOT"] = str(settings.paths.feast_repo_root)
+    get_app_settings.cache_clear()
+
     from feast_repo import entities, offline_views, online_views, sources
 
+    importlib.reload(sources)
+    importlib.reload(entities)
+    importlib.reload(offline_views)
+    importlib.reload(online_views)
+    return entities, sources, offline_views, online_views
+
+
+def offline_feast_repo_objects(*, settings: AppSettings | None = None) -> list:
+    """Return the offline Feast objects in dependency-safe apply order."""
+    settings = settings or get_app_settings()
+    entities, sources, offline_views, _ = _reload_feast_repo_modules(settings)
     return [
         entities.customer,
         entities.article,
         entities.customer_session,
-        sources.customers_normalized_source,
-        sources.products_normalized_source,
-        sources.product_images_manifest_source,
-        sources.transactions_normalized_source,
         sources.point_in_time_training_dataset_source,
-        sources.session_intent_snapshot_source,
-        sources.customer_realtime_snapshot_source,
-        sources.article_realtime_snapshot_source,
         offline_views.customer_profile_base,
         offline_views.product_catalog_base,
-        offline_views.product_image_manifest_base,
         offline_views.customer_activity_base,
         offline_views.article_demand_base,
         offline_views.customer_article_affinity_base,
@@ -34,6 +47,14 @@ def feast_repo_objects() -> list:
         offline_views.customer_activity_features,
         offline_views.article_demand_features,
         offline_views.customer_article_affinity_features,
+    ]
+
+
+def online_feast_repo_objects(*, settings: AppSettings | None = None) -> list:
+    """Return the online Feast objects in dependency-safe apply order."""
+    settings = settings or get_app_settings()
+    _, _, _, online_views = _reload_feast_repo_modules(settings)
+    return [
         online_views.session_intent_push_source,
         online_views.customer_realtime_push_source,
         online_views.article_realtime_push_source,
@@ -41,6 +62,18 @@ def feast_repo_objects() -> list:
         online_views.customer_realtime_features,
         online_views.article_realtime_features,
     ]
+
+
+def feast_repo_objects(
+    *,
+    include_online: bool = True,
+    settings: AppSettings | None = None,
+) -> list:
+    """Return all Feast repo objects, optionally including online serving definitions."""
+    objects = offline_feast_repo_objects(settings=settings)
+    if include_online:
+        objects.extend(online_feast_repo_objects(settings=settings))
+    return objects
 
 
 def apply_feast_repo(
@@ -54,7 +87,7 @@ def apply_feast_repo(
     settings = settings or get_app_settings()
     repo_path = settings.paths.feast_repo_root
     feast_store = store or FeatureStore(repo_path=str(repo_path))
-    objects = feast_repo_objects()
+    objects = feast_repo_objects(settings=settings)
     feast_store.apply(objects=objects, partial=False)
 
     materialize_end_date = end_date

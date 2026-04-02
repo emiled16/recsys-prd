@@ -3,6 +3,7 @@ from __future__ import annotations
 from pathlib import Path
 
 from recsys_prd.config import AppSettings, get_app_settings
+from recsys_prd.features.feast_training_dataset import FeastPointInTimeDatasetBuilder
 from recsys_prd.features.training_dataset import (
     TRAINING_FEATURE_FIELDS,
     build_point_in_time_feature_row,
@@ -35,27 +36,37 @@ RANKING_FIELDS = [
 def build_ranking_dataset(
     *,
     normalized_root: Path | None = None,
+    features_root: Path | None = None,
     indexes_root: Path | None = None,
     models_root: Path | None = None,
     index_name: str = "fused",
     negative_sample_count: int = 4,
     max_seed_articles: int = 3,
+    pit_builder: FeastPointInTimeDatasetBuilder | None = None,
     settings: AppSettings | None = None,
 ) -> Path:
     """Build a ranking dataset with one positive row and retrieved negatives per label event."""
     settings = settings or get_app_settings()
     normalized_root = normalized_root or settings.paths.normalized_root
+    features_root = features_root or (
+        settings.paths.features_offline_root
+        if normalized_root == settings.paths.normalized_root
+        else normalized_root.parent / "features" / "offline"
+    )
     indexes_root = indexes_root or settings.paths.indexes_root
     models_root = models_root or settings.paths.models_root / "training_sets"
     customers, products, image_presence, ordered_transactions = load_training_inputs(
         normalized_root
     )
     retriever = CandidateRetriever(indexes_root=indexes_root, settings=settings)
+    pit_builder = pit_builder or FeastPointInTimeDatasetBuilder(settings=settings)
 
-    rows: list[dict[str, str]] = []
+    ranking_requests: list[dict[str, str]] = []
+    ranking_metadata: list[dict[str, object]] = []
     customer_history = {}
     article_history = {}
     customer_article_history = {}
+    baseline_feature_rows: list[dict[str, str]] = []
     positive_row_count = 0
     negative_row_count = 0
 
@@ -77,16 +88,33 @@ def build_ranking_dataset(
             )
         )
 
-        rows.append(
-            _build_ranking_row(
+        ranking_requests.append(
+            {
+                "event_id": transaction["event_id"],
+                "event_time": transaction["event_time"],
+                "customer_id": transaction["customer_id"],
+                "target_article_id": target_article_id,
+                "candidate_article_id": target_article_id,
+            }
+        )
+        ranking_metadata.append(
+            {
+                "label_event_id": transaction["event_id"],
+                "label_timestamp": transaction["event_time"],
+                "customer_id": transaction["customer_id"],
+                "target_article_id": target_article_id,
+                "candidate_article_id": target_article_id,
+                "candidate_source": "observed_positive",
+                "candidate_rank": "0",
+                "candidate_score": "",
+                "retrieval_query_text": retrieval_query_text,
+                "retrieval_seed_article_ids": seed_article_ids,
+            }
+        )
+        baseline_feature_rows.append(
+            build_point_in_time_feature_row(
                 transaction=transaction,
                 candidate_article_id=target_article_id,
-                target_article_id=target_article_id,
-                candidate_source="observed_positive",
-                candidate_rank=0,
-                candidate_score="",
-                retrieval_query_text=retrieval_query_text,
-                retrieval_seed_article_ids=seed_article_ids,
                 customers=customers,
                 products=products,
                 image_presence=image_presence,
@@ -103,16 +131,33 @@ def build_ranking_dataset(
             limit=negative_sample_count,
         )
         for negative_rank, candidate in enumerate(negative_candidates, start=1):
-            rows.append(
-                _build_ranking_row(
+            ranking_requests.append(
+                {
+                    "event_id": transaction["event_id"],
+                    "event_time": transaction["event_time"],
+                    "customer_id": transaction["customer_id"],
+                    "target_article_id": target_article_id,
+                    "candidate_article_id": candidate.article_id,
+                }
+            )
+            ranking_metadata.append(
+                {
+                    "label_event_id": transaction["event_id"],
+                    "label_timestamp": transaction["event_time"],
+                    "customer_id": transaction["customer_id"],
+                    "target_article_id": target_article_id,
+                    "candidate_article_id": candidate.article_id,
+                    "candidate_source": "retrieval_negative",
+                    "candidate_rank": str(negative_rank),
+                    "candidate_score": f"{candidate.score:.6f}",
+                    "retrieval_query_text": retrieval_query_text,
+                    "retrieval_seed_article_ids": seed_article_ids,
+                }
+            )
+            baseline_feature_rows.append(
+                build_point_in_time_feature_row(
                     transaction=transaction,
                     candidate_article_id=candidate.article_id,
-                    target_article_id=target_article_id,
-                    candidate_source="retrieval_negative",
-                    candidate_rank=negative_rank,
-                    candidate_score=f"{candidate.score:.6f}",
-                    retrieval_query_text=retrieval_query_text,
-                    retrieval_seed_article_ids=seed_article_ids,
                     customers=customers,
                     products=products,
                     image_presence=image_presence,
@@ -130,6 +175,22 @@ def build_ranking_dataset(
             customer_article_history=customer_article_history,
         )
 
+    feature_source = "feast"
+    try:
+        feature_rows = pit_builder.build_training_rows(
+            requests=ranking_requests,
+            normalized_root=normalized_root,
+            features_root=features_root,
+        )
+    except Exception:
+        feature_rows = baseline_feature_rows
+        feature_source = "baseline_fallback"
+
+    rows = _build_ranking_rows(
+        metadata=ranking_metadata,
+        feature_rows=feature_rows,
+    )
+
     dataset_dir = models_root / "ranking_dataset"
     dataset_path = write_dataset_bundle(
         dataset_dir=dataset_dir,
@@ -146,6 +207,7 @@ def build_ranking_dataset(
             "index_name": index_name,
             "negative_sample_count": negative_sample_count,
             "max_seed_articles": max_seed_articles,
+            "feature_source": feature_source,
             "positive_row_count": positive_row_count,
             "negative_row_count": negative_row_count,
             "row_count": len(rows),
@@ -154,48 +216,37 @@ def build_ranking_dataset(
     return dataset_path
 
 
-def _build_ranking_row(
+def _build_ranking_rows(
     *,
-    transaction: dict[str, str],
-    candidate_article_id: str,
-    target_article_id: str,
-    candidate_source: str,
-    candidate_rank: int,
-    candidate_score: str,
-    retrieval_query_text: str,
-    retrieval_seed_article_ids: tuple[str, ...],
-    customers: dict[str, dict[str, str]],
-    products: dict[str, dict[str, str]],
-    image_presence: dict[str, bool],
-    customer_history: dict,
-    article_history: dict,
-    customer_article_history: dict,
-) -> dict[str, str]:
-    feature_row = build_point_in_time_feature_row(
-        transaction=transaction,
-        candidate_article_id=candidate_article_id,
-        customers=customers,
-        products=products,
-        image_presence=image_presence,
-        customer_history=customer_history,
-        article_history=article_history,
-        customer_article_history=customer_article_history,
-    )
-    return {
-        "ranking_example_id": f"{transaction['event_id']}::{candidate_article_id}",
-        "label_event_id": transaction["event_id"],
-        "label_timestamp": transaction["event_time"],
-        "customer_id": transaction["customer_id"],
-        "target_article_id": target_article_id,
-        "candidate_article_id": candidate_article_id,
-        "label_purchase": feature_row["label_purchase"],
-        "candidate_source": candidate_source,
-        "candidate_rank": str(candidate_rank),
-        "candidate_score": candidate_score,
-        "retrieval_query_text": retrieval_query_text,
-        "retrieval_seed_article_ids": "|".join(retrieval_seed_article_ids),
-        **{field: feature_row[field] for field in TRAINING_FEATURE_FIELDS},
-    }
+    metadata: list[dict[str, object]],
+    feature_rows: list[dict[str, str]],
+) -> list[dict[str, str]]:
+    if len(metadata) != len(feature_rows):
+        raise ValueError("Ranking metadata rows and Feast feature rows must align.")
+    rows: list[dict[str, str]] = []
+    for metadata_row, feature_row in zip(metadata, feature_rows, strict=True):
+        rows.append(
+            {
+                "ranking_example_id": (
+                    f"{metadata_row['label_event_id']}::{metadata_row['candidate_article_id']}"
+                ),
+                "label_event_id": str(metadata_row["label_event_id"]),
+                "label_timestamp": str(metadata_row["label_timestamp"]),
+                "customer_id": str(metadata_row["customer_id"]),
+                "target_article_id": str(metadata_row["target_article_id"]),
+                "candidate_article_id": str(metadata_row["candidate_article_id"]),
+                "label_purchase": feature_row["label_purchase"],
+                "candidate_source": str(metadata_row["candidate_source"]),
+                "candidate_rank": str(metadata_row["candidate_rank"]),
+                "candidate_score": str(metadata_row["candidate_score"]),
+                "retrieval_query_text": str(metadata_row["retrieval_query_text"]),
+                "retrieval_seed_article_ids": "|".join(
+                    metadata_row["retrieval_seed_article_ids"]
+                ),
+                **{field: feature_row[field] for field in TRAINING_FEATURE_FIELDS},
+            }
+        )
+    return rows
 
 
 def _build_retrieval_query_text(product: dict[str, str]) -> str:

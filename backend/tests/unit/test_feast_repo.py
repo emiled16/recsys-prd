@@ -32,7 +32,7 @@ class FeastRepoTests(unittest.TestCase):
 
         self.assertEqual(
             sources.customers_normalized_source.path,
-            f"file://{customers_path}",
+            str(customers_path),
         )
         self.assertEqual(
             sources.transactions_normalized_source.timestamp_field,
@@ -40,7 +40,7 @@ class FeastRepoTests(unittest.TestCase):
         )
         self.assertEqual(
             sources.point_in_time_training_dataset_source.path,
-            f"file://{training_dataset_path}",
+            str(training_dataset_path),
         )
 
     def test_entities_cover_customer_article_and_session_keys(self) -> None:
