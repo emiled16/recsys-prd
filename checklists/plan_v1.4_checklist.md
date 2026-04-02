@@ -64,7 +64,7 @@
 - [x] T51: Re-express offline feature views from `features.registry()` as Feast feature views
 - [x] T52: Re-express online feature requirements as Feast online feature views backed by Redis
 - [x] T53: Add a command to materialize or apply Feast definitions locally
-- [ ] T54: Implement a `FeastPointInTimeDatasetBuilder` that replaces custom PIT joins
+- [x] T54: Implement a `FeastPointInTimeDatasetBuilder` that replaces custom PIT joins
 - [ ] T55: Update ranking dataset generation to consume Feast-built training rows
 
 ## Milestone M7: Replace Deterministic Embeddings and Local Vector Indexes
