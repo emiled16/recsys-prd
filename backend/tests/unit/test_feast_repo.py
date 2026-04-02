@@ -86,6 +86,44 @@ class FeastRepoTests(unittest.TestCase):
             },
         )
 
+    def test_online_views_cover_current_online_requirements(self) -> None:
+        from feast_repo.online_views import online_feature_views
+
+        views = {view.name: view for view in online_feature_views()}
+
+        self.assertEqual(
+            set(views.keys()),
+            {
+                "session_intent_features",
+                "customer_realtime_features",
+                "article_realtime_features",
+            },
+        )
+        self.assertTrue(all(view.online for view in views.values()))
+        self.assertEqual(
+            views["session_intent_features"].stream_source.name,
+            "session_intent_push_source",
+        )
+        self.assertEqual(
+            views["session_intent_features"].source.name,
+            "session_intent_snapshot_source",
+        )
+        self.assertEqual(
+            views["customer_realtime_features"].tags["freshness_target_seconds"],
+            "300",
+        )
+        self.assertEqual(
+            {field.name for field in views["article_realtime_features"].schema},
+            {
+                "purchase_count_1d_rt",
+                "purchase_count_7d_rt",
+                "inventory_level_rt",
+                "is_in_stock_rt",
+                "current_price_rt",
+                "minutes_since_last_catalog_update",
+            },
+        )
+
 
 if __name__ == "__main__":
     unittest.main()
