@@ -73,3 +73,5 @@ This is the append-only execution log for the recommendation system project. Eac
 [2026-04-02 02:12:00] [plan v1.4] [DONE] T58: Refactored build_embedding_artifacts to use injected embedders, preserved deterministic fallback behavior, and added coverage for mixed embedding dimensions
 [2026-04-02 02:28:00] [plan v1.4] [START] T59: Implement a Qdrant index manager that creates collections and upserts embedding artifacts
 [2026-04-02 02:28:00] [plan v1.4] [DONE] T59: Expanded the Qdrant manager to own collection creation, stable article-key upserts, and persisted embedding artifact loading
+[2026-04-02 02:34:00] [plan v1.4] [START] T60: Add a CLI command that loads embedding artifacts into Qdrant collections
+[2026-04-02 02:34:00] [plan v1.4] [DONE] T60: Added build-qdrant-index CLI routing with regression coverage for the new Qdrant loading path
