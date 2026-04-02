@@ -60,3 +60,4 @@ This is the append-only execution log for the recommendation system project. Eac
 [2026-04-01 23:09:44] [plan v1.1] [DONE] T26: Added local candidate retrieval over the vector index with query text, seed-item, and online-context support plus unit coverage
 [2026-04-02 00:05:00] [plan v1.1] [START] T27: Build ranking dataset generation
 [2026-04-02 00:05:00] [plan v1.1] [DONE] T27: Added a ranking dataset builder that combines observed positives with retrieved negatives, candidate-specific PIT features, manifests, CLI support, and unit coverage
+[2026-04-02 00:18:00] [extra request] [DONE] Added backend Poetry dev dependencies, lint/test tool configuration, and a generated lockfile for reproducible local tooling
