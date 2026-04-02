@@ -122,6 +122,7 @@ The ranking model can start with a DLRM-style or MLP-based architecture and evol
 - Retrieval service queries the vector DB for candidate generation.
 - Ranking service fetches online features from Feast/Redis and returns ordered recommendations.
 - Feature hydration and inference paths are instrumented for latency and availability.
+- FastAPI exposes `/recommendations`, `/healthz`, and `/metrics` endpoints for local development and smoke checks.
 
 ### Monitoring
 - Infrastructure metrics: CPU, memory, network, disk, queue lag.
@@ -129,6 +130,7 @@ The ranking model can start with a DLRM-style or MLP-based architecture and evol
 - Feature metrics: distribution shifts, staleness, missingness.
 - Model metrics: latency, score drift, prediction drift, online KPI deltas.
 - Embedding metrics: norm drift, nearest-neighbor quality drift, index freshness.
+- Prometheus scrapes the FastAPI metrics endpoint and Grafana provisions a baseline recommendation dashboard for request rate, API latency, retrieval/ranking latency, and fallback rate.
 
 ### Retraining
 - Scheduled retraining from point-in-time correct feature snapshots.
@@ -146,6 +148,7 @@ The ranking model can start with a DLRM-style or MLP-based architecture and evol
 - Vector database: Qdrant or Milvus
 - Experiment tracking / registry: MLflow
 - Orchestration: Dagster or Airflow
+- Orchestration implementation: Dagster assets, jobs, and schedules under `backend/recsys_prd/orchestration/dagster_defs.py`
 - Serving: FastAPI model services
 - Monitoring: Prometheus + Grafana, plus data/model monitoring components
 - Local infrastructure: `docker-compose`

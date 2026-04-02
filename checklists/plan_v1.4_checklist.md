@@ -93,7 +93,7 @@
 - [x] T74: Implement an `ExperimentAssigner` and `ExposureLogger` for online experimentation
 
 ## Milestone M10: Add Observability, Orchestration, and Final Documentation
-- [ ] T75: Instrument API, retrieval, ranking, and feature flows with Prometheus metrics
-- [ ] T76: Add Prometheus and Grafana services plus a baseline dashboard
-- [ ] T77: Add Dagster assets and jobs for ingestion, feature materialization, embedding generation, training, and evaluation
-- [ ] T78: Update the system design and operating docs to match the implemented stack
+- [x] T75: Instrument API, retrieval, ranking, and feature flows with Prometheus metrics
+- [x] T76: Add Prometheus and Grafana services plus a baseline dashboard
+- [x] T77: Add Dagster assets and jobs for ingestion, feature materialization, embedding generation, training, and evaluation
+- [x] T78: Update the system design and operating docs to match the implemented stack
