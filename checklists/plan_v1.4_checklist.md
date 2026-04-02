@@ -81,7 +81,7 @@
 - [x] T64: Refactor `train_local_ranking_model()` to log training results through `MLflowRunLogger`
 - [x] T65: Implement an `MLflowModelRegistrar` that registers trained ranking models into the MLflow Model Registry
 - [x] T66: Add a `LightGBMRankerTrainer` or `XGBoostRankerTrainer` implementation behind a ranking trainer abstraction
-- [ ] T67: Update ranking evaluation to score MLflow-registered models rather than only local artifacts
+- [x] T67: Update ranking evaluation to score MLflow-registered models rather than only local artifacts
 
 ## Milestone M9: Build the Actual Evaluation and Recommendation Serving Paths
 - [ ] T68: Implement an `OfflineRetrievalEvaluator` for Recall@K, MRR, and NDCG on Qdrant-backed candidates
