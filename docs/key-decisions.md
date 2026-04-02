@@ -169,3 +169,13 @@
 - Decision: Build ranking datasets with one observed positive row per transaction plus deterministic negatives drawn from the retrieval index, and compute candidate features against history strictly before the label time.
 - Rationale: This keeps training data aligned with the real candidate-generation path while preserving point-in-time correctness for both positives and negatives.
 - Consequences: Future ranking-training work should treat retrieval score and candidate-source metadata as first-class inputs and preserve the same leakage boundary if the retriever changes.
+
+## [2026-04-02] D-018: Start ranking training with a deterministic linear baseline before introducing deep ranking models
+- Plan: v1.1
+- Context: T28 needs reproducible training artifacts now, but the project has not yet introduced a tensor stack, experiment service, or the evaluation framework that would justify a heavier ranking model.
+- Options considered:
+  - Add a neural ranking model and larger ML dependencies immediately.
+  - Start with a deterministic linear baseline over the ranking dataset and preserve clean artifact boundaries for later upgrades.
+- Decision: Train the first ranking model as a deterministic logistic baseline over numeric and hashed categorical ranking features, with serialized weights, metrics, and tracked run manifests.
+- Rationale: This creates a concrete training workflow and inspectable model artifact now while preserving a clean migration path toward richer ranking models later.
+- Consequences: T29 and T31 should treat the saved model artifact and run metadata as the stable interface, even if the internal trainer later moves to MLflow and deeper architectures.

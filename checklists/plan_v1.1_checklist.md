@@ -36,7 +36,7 @@
 - [x] T25: Build vector indexing pipeline
 - [x] T26: Implement candidate retrieval logic
 - [x] T27: Build ranking dataset generation
-- [ ] T28: Implement ranking model training
+- [x] T28: Implement ranking model training
 - [ ] T29: Register candidate models and metadata
 
 ## Milestone M6: Evaluation, Serving, and Experimentation
