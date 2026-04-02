@@ -79,3 +79,13 @@
 - Decision: Build the first point-in-time training dataset by replaying normalized transactions in time order and deriving feature values from prior events only.
 - Rationale: This makes the leakage boundary explicit, testable, and reproducible without blocking on future infrastructure choices.
 - Consequences: Later feature-store integration should preserve the same join semantics even if the execution engine changes.
+
+## [2026-04-01] D-009: Restrict online features to freshness-sensitive signals
+- Plan: v1.1
+- Context: Not every offline feature belongs in the online serving path, and pushing everything online would make T20 and T21 noisier than necessary.
+- Options considered:
+  - Mirror all offline features online.
+  - Limit the online contract to session, customer-behavior, and article-state signals that need sub-hour freshness.
+- Decision: Keep online feature requirements focused on session intent, realtime customer behavior, and realtime article state.
+- Rationale: This keeps the serving path lean and reserves static profile or catalog attributes for batch/snapshot usage unless a clear latency need appears later.
+- Consequences: T20 should prioritize a small number of high-value streaming aggregates instead of building a general-purpose online mirror of the offline feature set.

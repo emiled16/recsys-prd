@@ -41,3 +41,5 @@ This is the append-only execution log for the recommendation system project. Eac
 [2026-04-01 22:52:00] [plan v1.1] [DONE] T17: Added an offline feature spec plus code-level entity and view registry definitions for future point-in-time feature work
 [2026-04-01 23:04:00] [plan v1.1] [START] T18: Build point-in-time correct training joins
 [2026-04-01 23:04:00] [plan v1.1] [DONE] T18: Added a leakage-safe offline training dataset builder, join manifest output, and unit coverage for historical feature retrieval
+[2026-04-01 23:12:00] [plan v1.1] [START] T19: Define online feature requirements
+[2026-04-01 23:12:00] [plan v1.1] [DONE] T19: Added online feature requirement definitions covering entities, freshness targets, and streaming-input mappings
