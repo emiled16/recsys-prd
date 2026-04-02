@@ -75,3 +75,5 @@ This is the append-only execution log for the recommendation system project. Eac
 [2026-04-02 02:28:00] [plan v1.4] [DONE] T59: Expanded the Qdrant manager to own collection creation, stable article-key upserts, and persisted embedding artifact loading
 [2026-04-02 02:34:00] [plan v1.4] [START] T60: Add a CLI command that loads embedding artifacts into Qdrant collections
 [2026-04-02 02:34:00] [plan v1.4] [DONE] T60: Added build-qdrant-index CLI routing with regression coverage for the new Qdrant loading path
+[2026-04-02 02:44:00] [plan v1.4] [START] T61: Implement a Qdrant-backed candidate retriever while preserving the existing retrieval contract
+[2026-04-02 02:44:00] [plan v1.4] [DONE] T61: Replaced the local index search path with a Qdrant-backed retriever and added fake-client regression coverage for ranking, seed exclusion, and context propagation

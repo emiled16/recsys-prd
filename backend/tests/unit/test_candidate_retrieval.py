@@ -16,6 +16,33 @@ from recsys_prd.retrieval.embedding_pipeline import build_embedding_artifacts
 from recsys_prd.retrieval.vector_index import build_vector_indexes
 
 
+class FakeSearchPoint:
+    def __init__(self, article_id: str, score: float, department_name: str) -> None:
+        self.score = score
+        self.payload = {
+            "article_id": article_id,
+            "structured_metadata": {"department_name": department_name},
+            "modality_availability": {"text": True, "image": article_id == "108775015"},
+        }
+
+
+class FakeQdrantClient:
+    def search(
+        self,
+        *,
+        collection_name: str,
+        query_vector: list[float],
+        limit: int,
+        with_payload: bool,
+    ) -> list[FakeSearchPoint]:
+        del collection_name, query_vector, with_payload
+        return [
+            FakeSearchPoint("108775015", 0.99, "Ladies Dresses"),
+            FakeSearchPoint("108775016", 0.88, "Ladies Dresses"),
+            FakeSearchPoint("208775015", 0.21, "Ladies Tops"),
+        ][:limit]
+
+
 class CandidateRetrievalTests(unittest.TestCase):
     def setUp(self) -> None:
         self.tmp_dir = tempfile.TemporaryDirectory()
@@ -41,6 +68,7 @@ class CandidateRetrievalTests(unittest.TestCase):
         self.retriever = CandidateRetriever(
             indexes_root=self.indexes_root,
             online_feature_service=OnlineFeatureService(self.store_root),
+            client=FakeQdrantClient(),
         )
 
     def tearDown(self) -> None:
