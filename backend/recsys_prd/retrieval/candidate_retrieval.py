@@ -1,7 +1,9 @@
 from __future__ import annotations
 
-import math
 from pathlib import Path
+from typing import Any
+
+from qdrant_client import QdrantClient
 
 from recsys_prd.config import AppSettings, get_app_settings
 from recsys_prd.events.io import read_jsonl
@@ -10,28 +12,36 @@ from recsys_prd.retrieval.contracts import CandidateRecord, RetrievalRequest, Re
 from recsys_prd.retrieval.embedding_support import EMBEDDING_DIMENSION, hash_embedding_payload
 
 
-class CandidateRetriever:
-    """Retrieve candidates from the local file-backed vector index."""
+class QdrantCandidateRetriever:
+    """Retrieve candidates from Qdrant while preserving the existing request contract."""
 
     def __init__(
         self,
         indexes_root: Path | None = None,
         online_feature_service: OnlineFeatureService | None = None,
         settings: AppSettings | None = None,
+        client: Any | None = None,
     ) -> None:
-        settings = settings or get_app_settings()
-        self.indexes_root = indexes_root or settings.paths.indexes_root
+        self.settings = settings or get_app_settings()
+        self.indexes_root = indexes_root or self.settings.paths.indexes_root
         self.online_feature_service = online_feature_service or OnlineFeatureService(
-            settings=settings
+            settings=self.settings
         )
+        self.client = client or QdrantClient(
+            host=self.settings.services.qdrant.host,
+            port=self.settings.services.qdrant.port,
+        )
+        self.collection_by_index = {
+            "text": self.settings.services.qdrant.text_collection,
+            "fused": self.settings.services.qdrant.fused_collection,
+        }
 
     def retrieve(self, request: RetrievalRequest) -> RetrievalResult:
-        index_records = self._load_index(request.index_name)
         seed_article_ids = set(request.seed_article_ids)
         context_tokens = self._context_tokens(request)
         query_vector = self._build_query_vector(
             request=request,
-            index_records=index_records,
+            index_records=self._load_index(request.index_name),
             context_tokens=context_tokens,
         )
         if query_vector is None:
@@ -41,30 +51,65 @@ class CandidateRetriever:
                 context_tokens=tuple(context_tokens),
             )
 
-        scored_candidates: list[CandidateRecord] = []
-        for record in index_records:
-            if record["article_id"] in seed_article_ids:
-                continue
-            score = _cosine_similarity(
-                query_vector,
-                record["vector"],
-                record.get("vector_norm", 0.0),
-            )
-            scored_candidates.append(
-                CandidateRecord(
-                    article_id=record["article_id"],
-                    score=round(score, 6),
-                    structured_metadata=record["structured_metadata"],
-                    modality_availability=record["modality_availability"],
-                )
-            )
-
-        ranked = sorted(scored_candidates, key=lambda item: (-item.score, item.article_id))
+        collection_name = self.collection_by_index[request.index_name]
+        raw_points = self._search(
+            collection_name=collection_name,
+            query_vector=query_vector,
+            limit=request.limit + len(seed_article_ids),
+        )
+        candidates = [
+            candidate
+            for candidate in self._candidate_records(raw_points)
+            if candidate.article_id not in seed_article_ids
+        ]
         return RetrievalResult(
-            candidates=tuple(ranked[: request.limit]),
+            candidates=tuple(candidates[: request.limit]),
             index_name=request.index_name,
             context_tokens=tuple(context_tokens),
         )
+
+    def _search(
+        self,
+        *,
+        collection_name: str,
+        query_vector: list[float],
+        limit: int,
+    ) -> list[Any]:
+        if hasattr(self.client, "query_points"):
+            response = self.client.query_points(
+                collection_name=collection_name,
+                query=query_vector,
+                limit=limit,
+                with_payload=True,
+            )
+            return list(getattr(response, "points", response))
+        return list(
+            self.client.search(
+                collection_name=collection_name,
+                query_vector=query_vector,
+                limit=limit,
+                with_payload=True,
+            )
+        )
+
+    def _candidate_records(self, raw_points: list[Any]) -> list[CandidateRecord]:
+        candidates: list[CandidateRecord] = []
+        for point in raw_points:
+            if isinstance(point, dict):
+                payload = point.get("payload", {})
+                score = point.get("score", 0.0)
+            else:
+                payload = getattr(point, "payload", {})
+                score = getattr(point, "score", 0.0)
+            candidates.append(
+                CandidateRecord(
+                    article_id=payload["article_id"],
+                    score=round(float(score), 6),
+                    structured_metadata=payload.get("structured_metadata", {}),
+                    modality_availability=payload.get("modality_availability", {}),
+                )
+            )
+        return candidates
 
     def _load_index(self, index_name: str) -> list[dict]:
         index_path = self.indexes_root / index_name / f"article_{index_name}_index.jsonl"
@@ -121,6 +166,10 @@ class CandidateRetriever:
         return tokens
 
 
+class CandidateRetriever(QdrantCandidateRetriever):
+    """Compatibility alias for the Qdrant-backed retriever."""
+
+
 def _payload_tokens(prefix: str, payload: dict) -> list[str]:
     tokens: list[str] = []
     for key in sorted(payload.keys()):
@@ -137,26 +186,4 @@ def _average_vectors(vectors: list[list[float]]) -> list[float]:
     for vector in vectors:
         for index, value in enumerate(vector):
             averaged[index] += value
-    return _normalize([value / len(vectors) for value in averaged])
-
-
-def _normalize(values: list[float]) -> list[float]:
-    norm = math.sqrt(sum(value * value for value in values))
-    if norm == 0.0:
-        return values
-    return [value / norm for value in values]
-
-
-def _cosine_similarity(
-    query_vector: list[float],
-    item_vector: list[float],
-    item_norm: float,
-) -> float:
-    query_norm = math.sqrt(sum(component * component for component in query_vector))
-    if query_norm == 0.0 or item_norm == 0.0:
-        return 0.0
-    dot = sum(
-        query_component * item_component
-        for query_component, item_component in zip(query_vector, item_vector, strict=True)
-    )
-    return dot / (query_norm * item_norm)
+    return [value / len(vectors) for value in averaged]
