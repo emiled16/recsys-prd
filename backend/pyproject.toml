@@ -19,6 +19,7 @@ prometheus-client = "^0.24.1"
 confluent-kafka = "^2.13.2"
 xgboost = "^3.2.0"
 feast = {version = "^0.61.0", extras = ["redis"]}
+dagster = "^1.11.11"
 
 [tool.poetry.group.dev.dependencies]
 pytest = "^8.3.5"
