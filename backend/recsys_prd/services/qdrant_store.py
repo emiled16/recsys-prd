@@ -1,11 +1,13 @@
 from __future__ import annotations
 
+from pathlib import Path
 from typing import Any
 
 from qdrant_client import QdrantClient
 from qdrant_client.models import Distance, PointStruct, VectorParams
 
 from recsys_prd.config import AppSettings, get_app_settings
+from recsys_prd.events.io import read_jsonl
 
 
 def ensure_qdrant_connection(
@@ -26,6 +28,37 @@ def ensure_qdrant_connection(
             settings.services.qdrant.text_collection,
             settings.services.qdrant.fused_collection,
         ],
+    }
+
+
+def load_qdrant_indexes(
+    *,
+    embeddings_root: Path | None = None,
+    settings: AppSettings | None = None,
+    manager: "QdrantIndexManager" | None = None,
+) -> dict[str, Any]:
+    """Load persisted text and fused embedding artifacts into Qdrant collections."""
+    settings = settings or get_app_settings()
+    embeddings_root = embeddings_root or settings.paths.embeddings_root
+    manager = manager or QdrantIndexManager(settings=settings)
+
+    text_path = embeddings_root / "text" / "article_text_embeddings.jsonl"
+    fused_path = embeddings_root / "fused" / "article_fused_embeddings.jsonl"
+    text_count = manager.upsert_artifact(
+        settings.services.qdrant.text_collection,
+        text_path,
+    )
+    fused_count = manager.upsert_artifact(
+        settings.services.qdrant.fused_collection,
+        fused_path,
+    )
+    return {
+        "text_collection": settings.services.qdrant.text_collection,
+        "text_path": str(text_path),
+        "text_count": text_count,
+        "fused_collection": settings.services.qdrant.fused_collection,
+        "fused_path": str(fused_path),
+        "fused_count": fused_count,
     }
 
 
@@ -58,9 +91,12 @@ class QdrantIndexManager:
         )
 
     def upsert(self, collection_name: str, records: list[dict[str, Any]]) -> int:
+        if not records:
+            return 0
+        self.ensure_collection(collection_name, dimension=_record_dimension(records[0]))
         points = [
             PointStruct(
-                id=index,
+                id=record["article_id"],
                 vector=record["vector"],
                 payload={
                     "article_id": record["article_id"],
@@ -70,7 +106,17 @@ class QdrantIndexManager:
                     "model_version": record["model_version"],
                 },
             )
-            for index, record in enumerate(records, start=1)
+            for record in records
         ]
         self.client.upsert(collection_name=collection_name, points=points)
         return len(points)
+
+    def upsert_artifact(self, collection_name: str, artifact_path: Path) -> int:
+        records = read_jsonl(artifact_path) if artifact_path.exists() else []
+        return self.upsert(collection_name, records)
+
+
+def _record_dimension(record: dict[str, Any]) -> int:
+    if "vector_dimension" in record:
+        return int(record["vector_dimension"])
+    return len(record.get("vector", []))
