@@ -17,6 +17,7 @@ from recsys_prd.features.training_dataset import build_point_in_time_training_da
 from recsys_prd.ingestion.hm_raw import ingest_hm_raw
 from recsys_prd.normalization.pipeline import run_hm_normalization
 from recsys_prd.ranking.dataset import build_ranking_dataset
+from recsys_prd.ranking.evaluation import evaluate_registered_ranking_model
 from recsys_prd.ranking.registry import register_candidate_ranking_model
 from recsys_prd.ranking.training import train_local_ranking_model
 from recsys_prd.retrieval.candidate_retrieval import CandidateRetriever
@@ -153,6 +154,10 @@ def build_parser() -> argparse.ArgumentParser:
     subparsers.add_parser(
         "register-ranking-model",
         help="Register the latest trained ranking model as a candidate model version.",
+    )
+    subparsers.add_parser(
+        "evaluate-ranking-model",
+        help="Evaluate the latest MLflow-registered ranking model against its tracked dataset.",
     )
     subparsers.add_parser(
         "probe-mlflow",
@@ -346,6 +351,11 @@ def run_ranking_command(args: argparse.Namespace, settings: AppSettings) -> int:
         outputs = register_candidate_ranking_model(settings=settings)
         for name, path in outputs.items():
             print(f"{name}: {path}")
+        return 0
+    if args.command == "evaluate-ranking-model":
+        outputs = evaluate_registered_ranking_model(settings=settings)
+        for name, value in outputs.items():
+            print(f"{name}: {value}")
         return 0
     if args.command == "probe-mlflow":
         print(probe_mlflow_tracking(settings=settings))
