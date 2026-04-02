@@ -9,10 +9,65 @@ from pathlib import Path
 
 from recsys_prd.events.io import read_jsonl
 from recsys_prd.normalization.pipeline import run_hm_normalization
+from recsys_prd.retrieval.embedders import ImageEmbedder, TextEmbedder
 from recsys_prd.retrieval.embedding_pipeline import (
     EMBEDDING_DIMENSION,
     build_embedding_artifacts,
 )
+from recsys_prd.schemas.artifacts import EmbeddingArtifactRecord
+
+
+class FixedTextEmbedder(TextEmbedder):
+    def embed_articles(
+        self,
+        rows: list[dict[str, str]],
+        *,
+        generated_at: str,
+    ) -> list[EmbeddingArtifactRecord]:
+        return [
+            EmbeddingArtifactRecord(
+                article_id=row["article_id"],
+                generated_at_utc=generated_at,
+                model_name="fixed-text",
+                model_version="v-test",
+                modality="text",
+                strategy_name="text_first_baseline",
+                vector=[1.0, 0.0, 0.0],
+                vector_dimension=3,
+                structured_metadata={"department_name": row.get("department_name", "")},
+                modality_availability={
+                    "text": True,
+                    "image": bool(row.get("image_path")),
+                    "structured": True,
+                },
+            )
+            for row in rows
+        ]
+
+
+class FixedImageEmbedder(ImageEmbedder):
+    def embed_images(
+        self,
+        rows: list[dict[str, str]],
+        *,
+        generated_at: str,
+    ) -> list[EmbeddingArtifactRecord]:
+        return [
+            EmbeddingArtifactRecord(
+                article_id=row["article_id"],
+                generated_at_utc=generated_at,
+                model_name="fixed-image",
+                model_version="v-test",
+                modality="image",
+                strategy_name="late_fusion_multimodal",
+                vector=[0.0, 5.0],
+                vector_dimension=2,
+                structured_metadata={"department_name": row.get("department_name", "")},
+                modality_availability={"text": True, "image": True, "structured": True},
+                source_path=row["image_path"],
+            )
+            for row in rows
+        ]
 
 
 class EmbeddingPipelineTests(unittest.TestCase):
@@ -70,6 +125,26 @@ class EmbeddingPipelineTests(unittest.TestCase):
             text_only_fused["structured_metadata"]["department_name"],
             "Ladies Tops",
         )
+
+    def test_builds_artifacts_with_pluggable_embedders(self) -> None:
+        outputs = build_embedding_artifacts(
+            normalized_root=self.normalized_root,
+            embeddings_root=self.embeddings_root,
+            text_embedder=FixedTextEmbedder(),
+            image_embedder=FixedImageEmbedder(),
+        )
+
+        text_records = read_jsonl(outputs["text_embeddings"])
+        image_records = read_jsonl(outputs["image_embeddings"])
+        fused_records = read_jsonl(outputs["fused_embeddings"])
+        manifest = json.loads(outputs["manifest"].read_text(encoding="utf-8"))
+
+        self.assertEqual(text_records[0]["model_name"], "fixed-text")
+        self.assertEqual(image_records[0]["model_name"], "fixed-image")
+        self.assertEqual(manifest["artifacts"]["text"]["dimension"], 3)
+        self.assertEqual(manifest["artifacts"]["image"]["dimension"], 2)
+        self.assertEqual(manifest["artifacts"]["fused"]["dimension"], 3)
+        self.assertEqual(len(fused_records[0]["vector"]), 3)
 
     def _write_raw_fixture(self) -> None:
         articles_dir = self.raw_root / "articles"

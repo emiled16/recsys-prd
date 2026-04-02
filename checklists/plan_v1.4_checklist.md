@@ -70,7 +70,7 @@
 ## Milestone M7: Replace Deterministic Embeddings and Local Vector Indexes
 - [x] T56: Introduce a `TextEmbedder` abstraction with a real `SentenceTransformerTextEmbedder` implementation
 - [x] T57: Introduce an `ImageEmbedder` abstraction with a real `OpenClipImageEmbedder` implementation
-- [ ] T58: Refactor `build_embedding_artifacts()` to use pluggable embedder implementations
+- [x] T58: Refactor `build_embedding_artifacts()` to use pluggable embedder implementations
 - [ ] T59: Implement a `QdrantIndexManager` that creates collections and upserts embedding records
 - [ ] T60: Add a command that loads embedding artifacts into Qdrant collections
 - [ ] T61: Implement a `QdrantCandidateRetriever` that preserves the current `RetrievalRequest -> RetrievalResult` contract
