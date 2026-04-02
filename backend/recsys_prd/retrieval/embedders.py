@@ -5,17 +5,16 @@ from collections.abc import Sequence
 from pathlib import Path
 from typing import Any
 
-from recsys_prd.retrieval.embedding_pipeline import (
+from recsys_prd.retrieval.embedding_support import (
     IMAGE_MODEL_NAME,
     IMAGE_MODEL_VERSION,
     TEXT_MODEL_NAME,
     TEXT_MODEL_VERSION,
-    _embedding_record,
-    _image_payload,
-    _normalize,
-    _structured_metadata,
-    _text_payload,
+    embedding_record,
     hash_embedding_payload,
+    image_payload,
+    structured_metadata,
+    text_payload,
 )
 from recsys_prd.retrieval.representation_strategy import (
     LATE_FUSION_MULTIMODAL,
@@ -76,12 +75,12 @@ class HashingTextEmbedder(TextEmbedder):
         for row in rows:
             image_available = bool(row.get("image_path"))
             vector = hash_embedding_payload(
-                _text_payload(row, TEXT_MODALITY.input_fields),
+                text_payload(row, TEXT_MODALITY.input_fields),
                 dimension=self.dimension,
             )
             records.append(
                 EmbeddingArtifactRecord.model_validate(
-                    _embedding_record(
+                    embedding_record(
                         article_id=row["article_id"],
                         generated_at=generated_at,
                         model_name=self.model_name,
@@ -89,7 +88,7 @@ class HashingTextEmbedder(TextEmbedder):
                         modality="text",
                         strategy_name=TEXT_FIRST_BASELINE.name,
                         vector=vector,
-                        structured_metadata=_structured_metadata(row),
+                        structured_metadata=structured_metadata(row),
                         modality_availability={
                             "text": True,
                             "image": image_available,
@@ -129,13 +128,13 @@ class SentenceTransformerTextEmbedder(TextEmbedder):
         if not article_rows:
             return []
 
-        payloads = [_text_payload(row, TEXT_MODALITY.input_fields) for row in article_rows]
+        payloads = [text_payload(row, TEXT_MODALITY.input_fields) for row in article_rows]
         vectors = self._encode(payloads)
         records: list[EmbeddingArtifactRecord] = []
         for row, vector in zip(article_rows, vectors, strict=True):
             records.append(
                 EmbeddingArtifactRecord.model_validate(
-                    _embedding_record(
+                    embedding_record(
                         article_id=row["article_id"],
                         generated_at=generated_at,
                         model_name=self.model_name,
@@ -143,7 +142,7 @@ class SentenceTransformerTextEmbedder(TextEmbedder):
                         modality="text",
                         strategy_name=TEXT_FIRST_BASELINE.name,
                         vector=vector,
-                        structured_metadata=_structured_metadata(row),
+                        structured_metadata=structured_metadata(row),
                         modality_availability={
                             "text": True,
                             "image": bool(row.get("image_path")),
@@ -162,7 +161,10 @@ class SentenceTransformerTextEmbedder(TextEmbedder):
             normalize_embeddings=self.normalize_embeddings,
             show_progress_bar=False,
         )
-        return [_coerce_vector(vector, normalize=self.normalize_embeddings) for vector in vectors]
+        return [
+            _coerce_vector(vector, normalize_vector=self.normalize_embeddings)
+            for vector in vectors
+        ]
 
     def _get_model(self) -> Any:
         if self._model is not None:
@@ -200,12 +202,12 @@ class HashingImageEmbedder(ImageEmbedder):
         records: list[EmbeddingArtifactRecord] = []
         for row in rows:
             vector = hash_embedding_payload(
-                _image_payload(article_id=row["article_id"], image_path=row["image_path"]),
+                image_payload(article_id=row["article_id"], image_path=row["image_path"]),
                 dimension=self.dimension,
             )
             records.append(
                 EmbeddingArtifactRecord.model_validate(
-                    _embedding_record(
+                    embedding_record(
                         article_id=row["article_id"],
                         generated_at=generated_at,
                         model_name=self.model_name,
@@ -213,7 +215,7 @@ class HashingImageEmbedder(ImageEmbedder):
                         modality="image",
                         strategy_name=LATE_FUSION_MULTIMODAL.name,
                         vector=vector,
-                        structured_metadata=_structured_metadata(row),
+                        structured_metadata=structured_metadata(row),
                         modality_availability={
                             "text": True,
                             "image": True,
@@ -263,7 +265,7 @@ class OpenClipImageEmbedder(ImageEmbedder):
         for row, vector in zip(image_rows, vectors, strict=True):
             records.append(
                 EmbeddingArtifactRecord.model_validate(
-                    _embedding_record(
+                    embedding_record(
                         article_id=row["article_id"],
                         generated_at=generated_at,
                         model_name=self.model_name,
@@ -305,7 +307,10 @@ class OpenClipImageEmbedder(ImageEmbedder):
             vectors = model.encode_image(list(batch))
         else:  # pragma: no cover - only used with custom injected doubles.
             vectors = model(list(batch))
-        return [_coerce_vector(vector, normalize=self.normalize_embeddings) for vector in vectors]
+        return [
+            _coerce_vector(vector, normalize_vector=self.normalize_embeddings)
+            for vector in vectors
+        ]
 
     def _get_model(self) -> Any:
         if self._model is not None:
@@ -339,10 +344,17 @@ class OpenClipImageEmbedder(ImageEmbedder):
         return _loader
 
 
-def _coerce_vector(vector: Any, *, normalize: bool) -> list[float]:
+def _coerce_vector(vector: Any, *, normalize_vector: bool) -> list[float]:
     if hasattr(vector, "tolist"):
         vector = vector.tolist()
     values = [float(value) for value in vector]
-    if not normalize:
+    if not normalize_vector:
         return values
-    return _normalize(values)
+    return normalized(values)
+
+
+def normalized(values: list[float]) -> list[float]:
+    norm = sum(value * value for value in values) ** 0.5
+    if norm == 0.0:
+        return [0.0 for _ in values]
+    return [round(value / norm, 6) for value in values]
