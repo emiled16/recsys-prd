@@ -3,10 +3,12 @@ from __future__ import annotations
 import json
 from datetime import datetime, timezone
 from pathlib import Path
+from time import perf_counter
 from typing import Any
 
 from recsys_prd.api.models import RecommendationItem, RecommendationRequest, RecommendationResponse
 from recsys_prd.config import AppSettings, get_app_settings
+from recsys_prd.observability.metrics import FALLBACK_RESPONSES, RANKING_LATENCY, RETRIEVAL_LATENCY
 from recsys_prd.retrieval.candidate_retrieval import CandidateRetriever
 from recsys_prd.retrieval.contracts import RetrievalRequest
 from recsys_prd.serving.experimentation import ExperimentAssigner, ExposureLogger
@@ -36,6 +38,7 @@ class RecommendationService:
             session_id=request.session_id,
         )
         response_id = datetime.now(timezone.utc).strftime("%Y%m%dT%H%M%S%fZ")
+        retrieval_started_at = perf_counter()
         retrieval_result = self.retriever.retrieve(
             RetrievalRequest(
                 query_text=request.query_text,
@@ -46,12 +49,14 @@ class RecommendationService:
                 index_name="fused",
             )
         )
+        RETRIEVAL_LATENCY.observe(perf_counter() - retrieval_started_at)
         fallback_used = assignment.variant == "retrieval_only" or self.ranker is None
-        recommendations = (
-            self._build_fallback_recommendations(retrieval_result.candidates)
-            if fallback_used
-            else self._build_ranked_recommendations(retrieval_result.candidates)
-        )
+        if fallback_used:
+            recommendations = self._build_fallback_recommendations(retrieval_result.candidates)
+        else:
+            ranking_started_at = perf_counter()
+            recommendations = self._build_ranked_recommendations(retrieval_result.candidates)
+            RANKING_LATENCY.observe(perf_counter() - ranking_started_at)
         response = RecommendationResponse(
             response_id=response_id,
             experiment=assignment.experiment,
@@ -84,6 +89,7 @@ class RecommendationService:
                 index_name="fused",
             )
         )
+        FALLBACK_RESPONSES.labels(reason=reason).inc()
         return RecommendationResponse(
             response_id=datetime.now(timezone.utc).strftime("%Y%m%dT%H%M%S%fZ"),
             experiment=self.assigner.experiment_name,
