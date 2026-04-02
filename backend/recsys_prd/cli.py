@@ -11,6 +11,10 @@ from recsys_prd.features.online_service import OnlineFeatureService
 from recsys_prd.features.streaming_features import compute_online_feature_store
 from recsys_prd.features.training_dataset import build_point_in_time_training_dataset
 from recsys_prd.normalization.pipeline import run_hm_normalization
+from recsys_prd.retrieval.candidate_retrieval import CandidateRetriever
+from recsys_prd.retrieval.contracts import RetrievalRequest
+from recsys_prd.retrieval.embedding_pipeline import build_embedding_artifacts
+from recsys_prd.retrieval.vector_index import build_vector_indexes
 from recsys_prd.validation.hm_normalized import validate_hm_normalized
 
 
@@ -73,6 +77,39 @@ def build_parser() -> argparse.ArgumentParser:
     subparsers.add_parser(
         "validate-feature-parity",
         help="Validate online feature freshness and offline-online parity.",
+    )
+    subparsers.add_parser(
+        "build-embeddings",
+        help="Build deterministic text, image, and fused retrieval embeddings.",
+    )
+    subparsers.add_parser(
+        "build-vector-index",
+        help="Build local vector index artifacts from embedding outputs.",
+    )
+    retrieve_parser = subparsers.add_parser(
+        "retrieve-candidates",
+        help="Retrieve ranked product candidates from the local vector index.",
+    )
+    retrieve_parser.add_argument("--query-text", default="", help="Free-text retrieval query.")
+    retrieve_parser.add_argument(
+        "--seed-article-id",
+        action="append",
+        default=[],
+        help="Article ID to use as a seed item. Repeat to provide multiple seeds.",
+    )
+    retrieve_parser.add_argument("--customer-id", default="", help="Customer identifier.")
+    retrieve_parser.add_argument("--session-id", default="", help="Session identifier.")
+    retrieve_parser.add_argument(
+        "--index-name",
+        choices=["text", "fused"],
+        default="fused",
+        help="Local index artifact to query.",
+    )
+    retrieve_parser.add_argument(
+        "--limit",
+        type=int,
+        default=10,
+        help="Maximum number of candidates to return.",
     )
 
     return parser
@@ -142,6 +179,40 @@ def main() -> int:
     if args.command == "validate-feature-parity":
         result = validate_feature_parity_and_freshness()
         print(f"Validation OK: {result['ok']}")
+        return 0
+
+    if args.command == "build-embeddings":
+        outputs = build_embedding_artifacts()
+        for name, path in outputs.items():
+            print(f"{name}: {path}")
+        return 0
+
+    if args.command == "build-vector-index":
+        outputs = build_vector_indexes()
+        for name, path in outputs.items():
+            print(f"{name}: {path}")
+        return 0
+
+    if args.command == "retrieve-candidates":
+        retriever = CandidateRetriever()
+        result = retriever.retrieve(
+            RetrievalRequest(
+                query_text=args.query_text,
+                seed_article_ids=tuple(args.seed_article_id),
+                customer_id=args.customer_id,
+                session_id=args.session_id,
+                limit=args.limit,
+                index_name=args.index_name,
+            )
+        )
+        print(f"index_name: {result.index_name}")
+        print(f"context_tokens: {list(result.context_tokens)}")
+        for candidate in result.candidates:
+            print(
+                f"candidate: article_id={candidate.article_id} "
+                f"score={candidate.score:.6f} "
+                f"department={candidate.structured_metadata.get('department_name', '')}"
+            )
         return 0
 
     parser.error(f"Unsupported command: {args.command}")
