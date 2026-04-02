@@ -101,7 +101,7 @@ def validate_broker_replay(
         topic: int(topic_manifest["row_count"])
         for topic, topic_manifest in manifest["topics"].items()
     }
-    while min(observed_counts.values(), default=0) < min(expected_counts.values(), default=0):
+    while any(observed_counts[topic] < expected_counts[topic] for topic in topics):
         message = consumer.poll(timeout)
         if message is None:
             break

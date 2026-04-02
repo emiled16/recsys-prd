@@ -41,6 +41,8 @@ def consume_feature_updates(
     while max_messages is None or processed_count < max_messages:
         message = consumer.poll(0.1)
         if message is None:
+            if max_messages is None:
+                continue
             break
         event = json.loads(message.value().decode("utf-8"))
         writes = processor.apply(event)

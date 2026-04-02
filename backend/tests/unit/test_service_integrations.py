@@ -85,6 +85,26 @@ class FakeConsumer:
         return None
 
 
+class ScriptedConsumer:
+    def __init__(self, responses: list[FakeMessage | None | Exception]) -> None:
+        self.responses = responses
+
+    def subscribe(self, topics) -> None:
+        return None
+
+    def poll(self, timeout: float):
+        del timeout
+        if not self.responses:
+            return None
+        response = self.responses.pop(0)
+        if isinstance(response, Exception):
+            raise response
+        return response
+
+    def close(self) -> None:
+        return None
+
+
 class FakeCollection:
     def __init__(self, name: str) -> None:
         self.name = name
@@ -173,6 +193,36 @@ class ServiceIntegrationTests(unittest.TestCase):
             )
             self.assertTrue(result["ok"])
 
+    def test_validate_broker_replay_waits_for_each_topic_count(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp_dir:
+            manifest_path = Path(tmp_dir) / "manifest.json"
+            manifest_path.write_text(
+                json.dumps(
+                    {
+                        "topics": {
+                            "interaction_events": {"path": "unused", "row_count": 2},
+                            "catalog_events": {"path": "unused", "row_count": 1},
+                        }
+                    }
+                ),
+                encoding="utf-8",
+            )
+
+            result = validate_broker_replay(
+                manifest_path=manifest_path,
+                consumer=FakeConsumer(
+                    [
+                        FakeMessage("interaction_events", {"event_id": "1"}),
+                        FakeMessage("catalog_events", {"event_id": "2"}),
+                        FakeMessage("interaction_events", {"event_id": "3"}),
+                    ]
+                ),
+            )
+
+        self.assertTrue(result["ok"])
+        self.assertEqual(result["observed_counts"]["interaction_events"], 2)
+        self.assertEqual(result["observed_counts"]["catalog_events"], 1)
+
     def test_redis_store_and_online_service_round_trip(self) -> None:
         store = RedisOnlineFeatureStore(client=FakeRedisClient())
         store.put_customer_features("c1", {"purchase_count_30d_rt": 2})
@@ -204,6 +254,34 @@ class ServiceIntegrationTests(unittest.TestCase):
             store.get_customer_features("0001")["purchase_count_30d_rt"],
             1,
         )
+
+    def test_feature_consumer_keeps_running_across_idle_polls(self) -> None:
+        store = RedisOnlineFeatureStore(client=FakeRedisClient())
+        event = {
+            "event_id": "evt-2",
+            "event_type": "purchase",
+            "event_time": "2020-09-20T00:00:00Z",
+            "customer_id": "0002",
+            "session_id": "0002-2020-09-20",
+            "article_id": "108775016",
+            "price": "39.99",
+        }
+
+        with self.assertRaises(StopIteration):
+            consume_feature_updates(
+                consumer=ScriptedConsumer(
+                    [
+                        None,
+                        FakeMessage("interaction_events", event),
+                        StopIteration(),
+                    ]
+                ),
+                store=store,
+                processor=FeatureUpdateProcessor(),
+                max_messages=None,
+            )
+
+        self.assertEqual(store.get_customer_features("0002")["purchase_count_30d_rt"], 1)
 
     def test_qdrant_probe_and_upsert_use_manager(self) -> None:
         client = FakeQdrantClient()
