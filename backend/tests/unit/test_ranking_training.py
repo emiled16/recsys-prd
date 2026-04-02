@@ -11,6 +11,8 @@ from recsys_prd.events.io import read_jsonl
 from recsys_prd.io.tabular_ops import read_tabular_rows
 from recsys_prd.normalization.pipeline import run_hm_normalization
 from recsys_prd.ranking.dataset import build_ranking_dataset
+from recsys_prd.ranking.model import RankingTrainingConfig
+from recsys_prd.ranking.trainers import XGBoostRankerTrainer
 from recsys_prd.ranking.training import load_ranking_model, train_local_ranking_model
 from recsys_prd.retrieval.embedding_pipeline import build_embedding_artifacts
 from recsys_prd.retrieval.vector_index import build_vector_indexes
@@ -48,6 +50,26 @@ class FakeMlflowClient:
     def log_artifact(self, run_id: str, path: str) -> None:
         del run_id
         self.artifacts.append(path)
+
+
+class FakeRankerBackend:
+    def __init__(self) -> None:
+        self.fit_calls: list[dict[str, object]] = []
+
+    def fit(
+        self,
+        feature_matrix: list[list[float]],
+        labels: list[int],
+        *,
+        group: list[int],
+    ) -> None:
+        self.fit_calls.append(
+            {
+                "row_count": len(feature_matrix),
+                "label_count": len(labels),
+                "group_sizes": group,
+            }
+        )
 
 
 class RankingTrainingTests(unittest.TestCase):
@@ -122,6 +144,24 @@ class RankingTrainingTests(unittest.TestCase):
             model.predict_probability(positive_row),
             model.predict_probability(negative_row),
         )
+
+    def test_xgboost_ranker_trainer_builds_grouped_fit_inputs(self) -> None:
+        rows = read_tabular_rows(self.dataset_path)
+        backend = FakeRankerBackend()
+        trainer = XGBoostRankerTrainer(
+            backend_factory=lambda config, objective: backend,
+        )
+
+        trainer.train(
+            rows,
+            config=RankingTrainingConfig(epochs=5),
+            model_name="ranking_xgboost_baseline",
+            model_version="v1",
+        )
+
+        self.assertEqual(len(backend.fit_calls), 1)
+        self.assertEqual(backend.fit_calls[0]["row_count"], len(rows))
+        self.assertEqual(sum(backend.fit_calls[0]["group_sizes"]), len(rows))
 
     def _write_raw_fixture(self) -> None:
         articles_dir = self.raw_root / "articles"
