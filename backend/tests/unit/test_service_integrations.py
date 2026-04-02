@@ -10,7 +10,11 @@ from recsys_prd.features.online_service import OnlineFeatureService
 from recsys_prd.features.online_store import RedisOnlineFeatureStore
 from recsys_prd.features.update_processor import FeatureUpdateProcessor
 from recsys_prd.services.mlflow_store import probe_mlflow_tracking
-from recsys_prd.services.qdrant_store import QdrantIndexManager, ensure_qdrant_connection
+from recsys_prd.services.qdrant_store import (
+    QdrantIndexManager,
+    ensure_qdrant_connection,
+    load_qdrant_indexes,
+)
 from recsys_prd.services.redpanda import (
     KafkaReplayPublisher,
     bootstrap_redpanda_topics,
@@ -220,6 +224,53 @@ class ServiceIntegrationTests(unittest.TestCase):
         )
         self.assertIn("article_text_embeddings", result["managed_collections"])
         self.assertEqual(upserted, 1)
+
+    def test_load_qdrant_indexes_reads_embedding_artifacts(self) -> None:
+        client = FakeQdrantClient()
+        manager = QdrantIndexManager(client=client)
+        with tempfile.TemporaryDirectory() as tmp_dir:
+            root = Path(tmp_dir)
+            text_dir = root / "text"
+            fused_dir = root / "fused"
+            text_dir.mkdir(parents=True, exist_ok=True)
+            fused_dir.mkdir(parents=True, exist_ok=True)
+            text_dir.joinpath("article_text_embeddings.jsonl").write_text(
+                json.dumps(
+                    {
+                        "article_id": "1001",
+                        "vector": [1.0, 0.0],
+                        "vector_dimension": 2,
+                        "structured_metadata": {"department_name": "ladies"},
+                        "modality_availability": {"text": True},
+                        "model_name": "text-model",
+                        "model_version": "v1",
+                    }
+                )
+                + "\n",
+                encoding="utf-8",
+            )
+            fused_dir.joinpath("article_fused_embeddings.jsonl").write_text(
+                json.dumps(
+                    {
+                        "article_id": "1001",
+                        "vector": [0.5, 0.5],
+                        "vector_dimension": 2,
+                        "structured_metadata": {"department_name": "ladies"},
+                        "modality_availability": {"text": True, "image": True},
+                        "model_name": "fused-model",
+                        "model_version": "v1",
+                    }
+                )
+                + "\n",
+                encoding="utf-8",
+            )
+
+            result = load_qdrant_indexes(embeddings_root=root, manager=manager)
+
+        self.assertEqual(result["text_count"], 1)
+        self.assertEqual(result["fused_count"], 1)
+        self.assertEqual(client.upserts[0][0], "article_text_embeddings")
+        self.assertEqual(client.upserts[0][1][0].id, "1001")
 
     def test_mlflow_probe_logs_a_run(self) -> None:
         result = probe_mlflow_tracking(client=FakeMlflowClient())
