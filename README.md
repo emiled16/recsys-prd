@@ -6,9 +6,7 @@ The project is intended as an ML systems design exercise with a strong platform 
 
 ## Current Status
 
-The repository currently contains project documentation and versioned implementation plans. Application code and infrastructure definitions will be added incrementally as the execution plan is carried out.
-
-The first implementation slice now includes backend Python scaffolding plus a raw H&M ingestion command that lands dataset assets under `data/raw/hm/`.
+The repository now includes a runnable backend stack for ingestion, normalization, replay, features, retrieval, ranking, evaluation, recommendation serving, experimentation logging, and local observability.
 
 ## Repository Structure
 
@@ -25,8 +23,8 @@ The first implementation slice now includes backend Python scaffolding plus a ra
 - `docs/offline-feature-spec.md`: Offline feature entities, feature views, and source mappings.
 - `docs/online-feature-requirements.md`: Freshness and streaming-input requirements for online features.
 - `docs/multimodal-representation-strategy.md`: Retrieval modality and fusion strategy for product representations.
-- `plans/plan_v1.1.md`: Current granular implementation plan.
-- `checklists/plan_v1.1_checklist.md`: Current execution checklist.
+- `plans/plan_v1.4.md`: Current granular implementation plan.
+- `checklists/plan_v1.4_checklist.md`: Current execution checklist.
 
 ## Working Principles
 
@@ -82,6 +80,14 @@ Register the latest trained ranking model into the local candidate registry with
 python3 backend/scripts/ingest_hm_raw.py register-ranking-model
 ```
 
+Evaluate retrieval quality, the registered ranking model, and offline ranking quality with:
+
+```bash
+python3 backend/scripts/ingest_hm_raw.py evaluate-retrieval
+python3 backend/scripts/ingest_hm_raw.py evaluate-ranking-model
+python3 backend/scripts/ingest_hm_raw.py evaluate-ranking-quality
+```
+
 Compute local online feature snapshots from replayed events with:
 
 ```bash
@@ -93,6 +99,21 @@ Read one payload back from the local online feature store with:
 ```bash
 python3 backend/scripts/ingest_hm_raw.py get-online-features --entity customer --customer-id 0001
 ```
+
+Run the FastAPI recommendation service locally with:
+
+```bash
+cd backend
+poetry run uvicorn recsys_prd.api.app:create_app --factory --reload
+```
+
+Start the local infra stack, Prometheus, and Grafana with:
+
+```bash
+docker compose up -d
+```
+
+Grafana is available at `http://localhost:3000` and Prometheus at `http://localhost:9090`.
 
 Validate online freshness and offline-online feature parity with:
 
