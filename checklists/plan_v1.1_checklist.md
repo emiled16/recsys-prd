@@ -7,20 +7,20 @@
 - [x] T4: Refine the plan into execution-sized tasks
 
 ## Milestone M2: Dataset and Data Contracts
-- [ ] T5: Define the source dataset contract
-- [ ] T6: Define local storage and dataset layout conventions
-- [ ] T7: Build raw dataset ingestion
-- [ ] T8: Build product normalization
-- [ ] T9: Build customer normalization
-- [ ] T10: Build transaction normalization
-- [ ] T11: Validate normalized dataset outputs
+- [x] T5: Define the source dataset contract
+- [x] T6: Define local storage and dataset layout conventions
+- [x] T7: Build raw dataset ingestion
+- [x] T8: Build product normalization
+- [x] T9: Build customer normalization
+- [x] T10: Build transaction normalization
+- [x] T11: Validate normalized dataset outputs
 
 ## Milestone M3: Streaming Simulation and Event Flows
-- [ ] T12: Define event schemas for simulated online behavior
-- [ ] T13: Implement synthetic interaction generation
-- [ ] T14: Implement catalog change event generation
-- [ ] T15: Implement local event publishing and replay
-- [ ] T16: Validate replayed event quality
+- [x] T12: Define event schemas for simulated online behavior
+- [x] T13: Implement synthetic interaction generation
+- [x] T14: Implement catalog change event generation
+- [x] T15: Implement local event publishing and replay
+- [x] T16: Validate replayed event quality
 
 ## Milestone M4: Feature Platform
 - [ ] T17: Define offline feature entities and views

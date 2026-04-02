@@ -156,7 +156,7 @@ This document is the initial scope and design direction. The next revision shoul
 - detailed ASCII diagrams,
 - layer-by-layer infra deep dive,
 - exact service boundaries,
-- storage layout,
+- storage layout, now split into `docs/data-layout.md`,
 - deployment topology,
 - retraining and rollback workflows,
 - tradeoff analysis for vector DB and orchestrator choices.

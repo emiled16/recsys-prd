@@ -8,8 +8,11 @@ The project is intended as an ML systems design exercise with a strong platform 
 
 The repository currently contains project documentation and versioned implementation plans. Application code and infrastructure definitions will be added incrementally as the execution plan is carried out.
 
+The first implementation slice now includes backend Python scaffolding plus a raw H&M ingestion command that lands dataset assets under `data/raw/hm/`.
+
 ## Repository Structure
 
+- `backend/`: Python backend package, scripts, and tests.
 - `docs/`: Project context, charter, system design, and progress tracking.
 - `plans/`: Versioned implementation plans.
 - `checklists/`: Matching execution checklists for each plan version.
@@ -17,6 +20,8 @@ The repository currently contains project documentation and versioned implementa
 ## Key Documents
 
 - `docs/project-charter.md`: Project scope, objectives, constraints, and acceptance criteria.
+- `docs/dataset-contract.md`: Source dataset contract for H&M entities and image assets.
+- `docs/data-layout.md`: Local storage and dataset layout conventions for raw and derived data.
 - `plans/plan_v1.1.md`: Current granular implementation plan.
 - `checklists/plan_v1.1_checklist.md`: Current execution checklist.
 
@@ -25,6 +30,30 @@ The repository currently contains project documentation and versioned implementa
 - Keep the architecture production-oriented even when local development uses simplified infrastructure.
 - Preserve versioned planning artifacts instead of rewriting history.
 - Prefer explicit documentation of tradeoffs, assumptions, and operational concerns.
+
+## Raw Ingestion
+
+Use the raw-ingestion command to place the H&M source dataset into the local storage layout:
+
+```bash
+python3 backend/scripts/ingest_hm_raw.py ingest-hm-raw --source /path/to/hm_dataset
+```
+
+Use `--replace` if `data/raw/hm/` already contains a previous ingest and you want to overwrite it.
+
+Normalize the ingested raw layer and validate the outputs with:
+
+```bash
+python3 backend/scripts/ingest_hm_raw.py normalize-hm
+python3 backend/scripts/ingest_hm_raw.py validate-hm-normalized
+```
+
+Generate and validate local replay batches with:
+
+```bash
+python3 backend/scripts/ingest_hm_raw.py generate-hm-events
+python3 backend/scripts/ingest_hm_raw.py validate-hm-events
+```
 
 ## Planned System Capabilities
 
