@@ -11,6 +11,7 @@ from recsys_prd.features.online_service import OnlineFeatureService
 from recsys_prd.features.streaming_features import compute_online_feature_store
 from recsys_prd.features.training_dataset import build_point_in_time_training_dataset
 from recsys_prd.normalization.pipeline import run_hm_normalization
+from recsys_prd.ranking.dataset import build_ranking_dataset
 from recsys_prd.retrieval.candidate_retrieval import CandidateRetriever
 from recsys_prd.retrieval.contracts import RetrievalRequest
 from recsys_prd.retrieval.embedding_pipeline import build_embedding_artifacts
@@ -85,6 +86,10 @@ def build_parser() -> argparse.ArgumentParser:
     subparsers.add_parser(
         "build-vector-index",
         help="Build local vector index artifacts from embedding outputs.",
+    )
+    subparsers.add_parser(
+        "build-ranking-dataset",
+        help="Build a ranking training dataset from labels, retrieval, and PIT features.",
     )
     retrieve_parser = subparsers.add_parser(
         "retrieve-candidates",
@@ -191,6 +196,11 @@ def main() -> int:
         outputs = build_vector_indexes()
         for name, path in outputs.items():
             print(f"{name}: {path}")
+        return 0
+
+    if args.command == "build-ranking-dataset":
+        path = build_ranking_dataset()
+        print(f"ranking_dataset: {path}")
         return 0
 
     if args.command == "retrieve-candidates":
