@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import base64
 from dataclasses import dataclass
 from typing import Callable, Protocol
 
@@ -7,6 +8,7 @@ from recsys_prd.ranking.model import (
     RankingModel,
     RankingTrainingConfig,
     build_feature_schema,
+    evaluate_ranking_model,
     train_ranking_model,
     vectorize_ranking_row,
 )
@@ -68,12 +70,17 @@ class XGBoostRankerTrainer:
         feature_matrix = [_dense_feature_vector(row, feature_schema) for row in rows]
         labels = [int(row["label_purchase"]) for row in rows]
         backend.fit(feature_matrix, labels, group=_build_group_sizes(rows))
-        return train_ranking_model(
-            rows,
-            config=config,
+        model = RankingModel(
             model_name=model_name,
             model_version=model_version,
+            feature_schema=feature_schema,
+            training_config=config,
+            model_family=self.trainer_name,
+            backend_payload=_serialize_backend_model(backend),
+            _predictor=backend,
         )
+        metrics = evaluate_ranking_model(model, rows)
+        return model, metrics
 
 
 def _dense_feature_vector(
@@ -118,3 +125,19 @@ def _build_xgboost_ranker(config: RankingTrainingConfig, objective: str):
         max_depth=4,
         random_state=0,
     )
+
+
+def _serialize_backend_model(backend: object) -> str:
+    serializer = getattr(backend, "serialize_model", None)
+    if callable(serializer):
+        serialized_model = serializer()
+        if not isinstance(serialized_model, (bytes, bytearray)):
+            raise RuntimeError("Ranking backend serializer must return bytes.")
+        return base64.b64encode(bytes(serialized_model)).decode("ascii")
+
+    get_booster = getattr(backend, "get_booster", None)
+    if callable(get_booster):
+        booster = get_booster()
+        return base64.b64encode(bytes(booster.save_raw())).decode("ascii")
+
+    raise RuntimeError("Ranking backend must expose serialize_model() or get_booster().")
