@@ -59,3 +59,13 @@
 - Decision: Implement local replay as deterministic JSONL topic batches plus manifests before broker integration.
 - Rationale: This keeps event generation and validation testable now while preserving a clean handoff to Kafka later.
 - Consequences: Future streaming integration should treat these replay files as broker-ready payload sources rather than inventing a second event shape.
+
+## [2026-04-01] D-007: Separate static and event-time offline feature views
+- Plan: v1.1
+- Context: The offline feature layer needs to support both stable profile/catalog attributes and leakage-sensitive historical aggregates.
+- Options considered:
+  - Treat all offline features as one undifferentiated set.
+  - Split the registry into static snapshot views and event-time views with explicit timestamp semantics.
+- Decision: Define offline feature views with explicit timestamp fields so static views are clearly separated from point-in-time aggregate views.
+- Rationale: This keeps T18 simpler because the join logic only needs point-in-time filtering for the views that declare event-time semantics.
+- Consequences: Future feature materialization code should preserve these semantics and avoid backfilling event-time features as if they were static snapshots.

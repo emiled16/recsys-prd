@@ -23,7 +23,7 @@
 - [x] T16: Validate replayed event quality
 
 ## Milestone M4: Feature Platform
-- [ ] T17: Define offline feature entities and views
+- [x] T17: Define offline feature entities and views
 - [ ] T18: Build point-in-time correct training joins
 - [ ] T19: Define online feature requirements
 - [ ] T20: Build streaming feature computation
