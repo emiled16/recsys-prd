@@ -33,12 +33,12 @@
 
 ## Milestone M2: Refactor the Current Backend Into Stable Boundaries
 - [x] T30: Add `AppSettings` and `PathSettings` objects under a dedicated config module
-- [ ] T31: Replace direct path construction in existing modules with settings-based path resolution
-- [ ] T32: Split the current monolithic CLI into domain command handlers
-- [ ] T33: Introduce shared request and artifact schemas for post-baseline evolution
-- [ ] T34: Convert normalized, PIT, and ranking datasets from CSV/JSON to Parquet write paths
-- [ ] T35: Add compatibility readers so current code can consume both old and new artifact formats during migration
-- [ ] T36: Add refactor-focused tests for settings, schemas, and CLI handler routing
+- [x] T31: Replace direct path construction in existing modules with settings-based path resolution
+- [x] T32: Split the current monolithic CLI into domain command handlers
+- [x] T33: Introduce shared request and artifact schemas for post-baseline evolution
+- [x] T34: Convert normalized, PIT, and ranking datasets from CSV/JSON to Parquet write paths
+- [x] T35: Add compatibility readers so current code can consume both old and new artifact formats during migration
+- [x] T36: Add refactor-focused tests for settings, schemas, and CLI handler routing
 
 ## Milestone M3: Add the External Services Needed for the Real Stack
 - [ ] T37: Create `docker-compose.yml` with named services for Redpanda, Redis, Qdrant, and MLflow

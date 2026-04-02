@@ -4,15 +4,25 @@ import tempfile
 from pathlib import Path
 from zipfile import ZipFile, is_zipfile
 
-from recsys_prd.ingestion.contracts import IngestionResult, REQUIRED_FILES
+from recsys_prd.config import AppSettings, get_app_settings
+from recsys_prd.ingestion.contracts import REQUIRED_FILES, IngestionResult
 from recsys_prd.ingestion.copy_ops import copy_file, copy_tree
-from recsys_prd.ingestion.discovery import count_files, find_images_directory, find_required_files
+from recsys_prd.ingestion.discovery import (
+    count_files,
+    find_images_directory,
+    find_required_files,
+)
 from recsys_prd.ingestion.manifest import write_manifest
-from recsys_prd.paths import RAW_HM_ROOT
 
 
-def ingest_hm_raw(source: Path, replace: bool = False) -> IngestionResult:
+def ingest_hm_raw(
+    source: Path,
+    replace: bool = False,
+    *,
+    settings: AppSettings | None = None,
+) -> IngestionResult:
     """Ingest raw H&M dataset assets into the local `data/raw/hm` layout."""
+    settings = settings or get_app_settings()
     source = source.expanduser().resolve()
     if not source.exists():
         raise FileNotFoundError(f"Source path does not exist: {source}")
@@ -22,10 +32,22 @@ def ingest_hm_raw(source: Path, replace: bool = False) -> IngestionResult:
             extract_root = Path(temp_dir) / "extracted"
             with ZipFile(source) as archive:
                 archive.extractall(extract_root)
-            return _ingest_from_directory(extract_root, source, replace=replace, source_kind="zip")
+            return _ingest_from_directory(
+                extract_root,
+                source,
+                replace=replace,
+                source_kind="zip",
+                raw_hm_root=settings.paths.raw_hm_root,
+            )
 
     if source.is_dir():
-        return _ingest_from_directory(source, source, replace=replace, source_kind="directory")
+        return _ingest_from_directory(
+            source,
+            source,
+            replace=replace,
+            source_kind="directory",
+            raw_hm_root=settings.paths.raw_hm_root,
+        )
 
     raise ValueError("Source must be a directory or a zip archive.")
 
@@ -36,23 +58,25 @@ def _ingest_from_directory(
     *,
     replace: bool,
     source_kind: str,
+    raw_hm_root: Path,
 ) -> IngestionResult:
     matches = find_required_files(search_root)
     images_dir = find_images_directory(search_root)
 
-    RAW_HM_ROOT.mkdir(parents=True, exist_ok=True)
-    copied_paths = _copy_tabular_assets(matches, replace=replace)
-    images_root = _copy_images(images_dir, replace=replace)
+    raw_hm_root.mkdir(parents=True, exist_ok=True)
+    copied_paths = _copy_tabular_assets(matches, replace=replace, raw_hm_root=raw_hm_root)
+    images_root = _copy_images(images_dir, replace=replace, raw_hm_root=raw_hm_root)
     manifest_path = _write_ingestion_manifest(
         source_kind=source_kind,
         source_reference=source_reference,
         copied_paths=copied_paths,
         images_root=images_root,
+        raw_hm_root=raw_hm_root,
     )
 
     return IngestionResult(
         source=str(source_reference),
-        target_root=RAW_HM_ROOT,
+        target_root=raw_hm_root,
         customers_path=copied_paths["customers.csv"],
         articles_path=copied_paths["articles.csv"],
         transactions_path=copied_paths["transactions_train.csv"],
@@ -62,10 +86,15 @@ def _ingest_from_directory(
     )
 
 
-def _copy_tabular_assets(matches: dict[str, Path], *, replace: bool) -> dict[str, Path]:
+def _copy_tabular_assets(
+    matches: dict[str, Path],
+    *,
+    replace: bool,
+    raw_hm_root: Path,
+) -> dict[str, Path]:
     copied_paths: dict[str, Path] = {}
     for filename, (subdir, target_name) in REQUIRED_FILES.items():
-        destination_dir = RAW_HM_ROOT / subdir
+        destination_dir = raw_hm_root / subdir
         destination_dir.mkdir(parents=True, exist_ok=True)
         destination_path = destination_dir / target_name
         copy_file(matches[filename], destination_path, replace=replace)
@@ -73,8 +102,8 @@ def _copy_tabular_assets(matches: dict[str, Path], *, replace: bool) -> dict[str
     return copied_paths
 
 
-def _copy_images(images_dir: Path, *, replace: bool) -> Path:
-    images_root = RAW_HM_ROOT / "images"
+def _copy_images(images_dir: Path, *, replace: bool, raw_hm_root: Path) -> Path:
+    images_root = raw_hm_root / "images"
     copy_tree(images_dir, images_root, replace=replace)
     return images_root
 
@@ -85,15 +114,16 @@ def _write_ingestion_manifest(
     source_reference: Path,
     copied_paths: dict[str, Path],
     images_root: Path,
+    raw_hm_root: Path,
 ) -> Path:
-    manifest_dir = RAW_HM_ROOT / "manifests"
+    manifest_dir = raw_hm_root / "manifests"
     manifest_dir.mkdir(parents=True, exist_ok=True)
     manifest_path = manifest_dir / "ingestion_manifest.json"
     write_manifest(
         manifest_path=manifest_path,
         source_kind=source_kind,
         source_path=source_reference,
-        target_root=RAW_HM_ROOT,
+        target_root=raw_hm_root,
         customers_path=copied_paths["customers.csv"],
         articles_path=copied_paths["articles.csv"],
         transactions_path=copied_paths["transactions_train.csv"],

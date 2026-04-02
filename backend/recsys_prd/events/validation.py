@@ -2,21 +2,25 @@ from __future__ import annotations
 
 from pathlib import Path
 
+from recsys_prd.config import AppSettings, get_app_settings
 from recsys_prd.events.contracts import (
     CATALOG_REQUIRED_FIELDS,
     INTERACTION_REQUIRED_FIELDS,
 )
 from recsys_prd.events.io import read_jsonl
 from recsys_prd.io.json_ops import write_json
-from recsys_prd.paths import DATA_ROOT, REPORTS_ROOT
 
 
 def validate_local_replay(
     *,
-    events_root: Path = DATA_ROOT / "events",
-    reports_root: Path = REPORTS_ROOT,
+    events_root: Path | None = None,
+    reports_root: Path | None = None,
+    settings: AppSettings | None = None,
 ) -> dict:
     """Validate local replay batches for ordering and payload completeness."""
+    settings = settings or get_app_settings()
+    events_root = events_root or settings.paths.events_root
+    reports_root = reports_root or settings.paths.reports_root
     replay_dir = events_root / "replay_batches"
     interaction_events = read_jsonl(replay_dir / "interaction_events.jsonl")
     catalog_events = read_jsonl(replay_dir / "catalog_events.jsonl")

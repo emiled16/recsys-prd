@@ -2,14 +2,16 @@ from __future__ import annotations
 
 import argparse
 from pathlib import Path
+from typing import Sequence
 
+from recsys_prd.config import AppSettings, get_app_settings
 from recsys_prd.events.replay import publish_local_replay
 from recsys_prd.events.validation import validate_local_replay
-from recsys_prd.ingestion.hm_raw import ingest_hm_raw
-from recsys_prd.features.parity_validation import validate_feature_parity_and_freshness
 from recsys_prd.features.online_service import OnlineFeatureService
+from recsys_prd.features.parity_validation import validate_feature_parity_and_freshness
 from recsys_prd.features.streaming_features import compute_online_feature_store
 from recsys_prd.features.training_dataset import build_point_in_time_training_dataset
+from recsys_prd.ingestion.hm_raw import ingest_hm_raw
 from recsys_prd.normalization.pipeline import run_hm_normalization
 from recsys_prd.ranking.dataset import build_ranking_dataset
 from recsys_prd.ranking.registry import register_candidate_ranking_model
@@ -130,10 +132,7 @@ def build_parser() -> argparse.ArgumentParser:
     return parser
 
 
-def main() -> int:
-    parser = build_parser()
-    args = parser.parse_args()
-
+def run_ingestion_command(args: argparse.Namespace, settings: AppSettings) -> int:
     if args.command == "ingest-hm-raw":
         result = ingest_hm_raw(args.source, replace=args.replace)
         print(f"Ingested H&M raw dataset from {result.source}")
@@ -143,40 +142,46 @@ def main() -> int:
         return 0
 
     if args.command == "normalize-hm":
-        outputs = run_hm_normalization()
+        outputs = run_hm_normalization(settings=settings)
         for name, path in outputs.items():
             print(f"{name}: {path}")
         return 0
 
     if args.command == "validate-hm-normalized":
-        result = validate_hm_normalized()
+        result = validate_hm_normalized(settings=settings)
         print(f"Validation OK: {result['ok']}")
         return 0
+    return -1
 
+
+def run_event_command(args: argparse.Namespace, settings: AppSettings) -> int:
     if args.command == "generate-hm-events":
-        outputs = publish_local_replay()
+        outputs = publish_local_replay(settings=settings)
         for name, path in outputs.items():
             print(f"{name}: {path}")
         return 0
 
     if args.command == "validate-hm-events":
-        result = validate_local_replay()
+        result = validate_local_replay(settings=settings)
         print(f"Validation OK: {result['ok']}")
         return 0
+    return -1
 
+
+def run_feature_command(args: argparse.Namespace, settings: AppSettings) -> int:
     if args.command == "build-pit-training-set":
-        path = build_point_in_time_training_dataset()
+        path = build_point_in_time_training_dataset(settings=settings)
         print(f"training_dataset: {path}")
         return 0
 
     if args.command == "compute-online-features":
-        outputs = compute_online_feature_store()
+        outputs = compute_online_feature_store(settings=settings)
         for name, path in outputs.items():
             print(f"{name}: {path}")
         return 0
 
     if args.command == "get-online-features":
-        service = OnlineFeatureService()
+        service = OnlineFeatureService(settings=settings)
         if args.entity == "session":
             print(
                 service.get_session_intent_features(
@@ -192,41 +197,26 @@ def main() -> int:
         return 0
 
     if args.command == "validate-feature-parity":
-        result = validate_feature_parity_and_freshness()
+        result = validate_feature_parity_and_freshness(settings=settings)
         print(f"Validation OK: {result['ok']}")
         return 0
+    return -1
 
+
+def run_retrieval_command(args: argparse.Namespace, settings: AppSettings) -> int:
     if args.command == "build-embeddings":
-        outputs = build_embedding_artifacts()
+        outputs = build_embedding_artifacts(settings=settings)
         for name, path in outputs.items():
             print(f"{name}: {path}")
         return 0
 
     if args.command == "build-vector-index":
-        outputs = build_vector_indexes()
+        outputs = build_vector_indexes(settings=settings)
         for name, path in outputs.items():
             print(f"{name}: {path}")
         return 0
-
-    if args.command == "build-ranking-dataset":
-        path = build_ranking_dataset()
-        print(f"ranking_dataset: {path}")
-        return 0
-
-    if args.command == "train-ranking-model":
-        outputs = train_local_ranking_model()
-        for name, path in outputs.items():
-            print(f"{name}: {path}")
-        return 0
-
-    if args.command == "register-ranking-model":
-        outputs = register_candidate_ranking_model()
-        for name, path in outputs.items():
-            print(f"{name}: {path}")
-        return 0
-
     if args.command == "retrieve-candidates":
-        retriever = CandidateRetriever()
+        retriever = CandidateRetriever(settings=settings)
         result = retriever.retrieve(
             RetrievalRequest(
                 query_text=args.query_text,
@@ -246,6 +236,44 @@ def main() -> int:
                 f"department={candidate.structured_metadata.get('department_name', '')}"
             )
         return 0
+    return -1
+
+
+def run_ranking_command(args: argparse.Namespace, settings: AppSettings) -> int:
+    if args.command == "build-ranking-dataset":
+        path = build_ranking_dataset(settings=settings)
+        print(f"ranking_dataset: {path}")
+        return 0
+
+    if args.command == "train-ranking-model":
+        outputs = train_local_ranking_model(settings=settings)
+        for name, path in outputs.items():
+            print(f"{name}: {path}")
+        return 0
+
+    if args.command == "register-ranking-model":
+        outputs = register_candidate_ranking_model(settings=settings)
+        for name, path in outputs.items():
+            print(f"{name}: {path}")
+        return 0
+    return -1
+
+
+def main(argv: Sequence[str] | None = None, settings: AppSettings | None = None) -> int:
+    parser = build_parser()
+    args = parser.parse_args(argv)
+    settings = settings or get_app_settings()
+
+    for handler in (
+        run_ingestion_command,
+        run_event_command,
+        run_feature_command,
+        run_retrieval_command,
+        run_ranking_command,
+    ):
+        result = handler(args, settings)
+        if result >= 0:
+            return result
 
     parser.error(f"Unsupported command: {args.command}")
     return 1

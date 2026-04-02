@@ -3,11 +3,10 @@ from __future__ import annotations
 import json
 from pathlib import Path
 
+from recsys_prd.config import AppSettings, get_app_settings
 from recsys_prd.features.online_requirements import online_feature_requirements
-from recsys_prd.io.csv_ops import read_csv_rows
 from recsys_prd.io.json_ops import write_json
-from recsys_prd.paths import DATA_ROOT, REPORTS_ROOT
-
+from recsys_prd.io.tabular_ops import read_tabular_rows
 
 OFFLINE_ONLINE_MAPPINGS = {
     "customer_realtime_features": [
@@ -22,14 +21,18 @@ OFFLINE_ONLINE_MAPPINGS = {
 
 def validate_feature_parity_and_freshness(
     *,
-    features_root: Path = DATA_ROOT / "features",
-    reports_root: Path = REPORTS_ROOT,
+    features_root: Path | None = None,
+    reports_root: Path | None = None,
+    settings: AppSettings | None = None,
 ) -> dict:
     """Validate online freshness targets and offline-online feature parity mappings."""
+    settings = settings or get_app_settings()
+    features_root = features_root or settings.paths.features_root
+    reports_root = reports_root or settings.paths.reports_root
     training_dataset_path = (
-        features_root / "offline" / "training_dataset" / "point_in_time_training_dataset.csv"
+        features_root / "offline" / "training_dataset" / "point_in_time_training_dataset.parquet"
     )
-    training_dataset_rows = read_csv_rows(training_dataset_path) if training_dataset_path.exists() else []
+    training_dataset_rows = read_tabular_rows(training_dataset_path)
     online_store_root = features_root / "online_bootstrap"
 
     freshness_checks = _validate_freshness(online_store_root)
@@ -59,7 +62,10 @@ def _validate_freshness(online_store_root: Path) -> dict[str, dict]:
     return checks
 
 
-def _validate_parity(training_dataset_rows: list[dict[str, str]], online_store_root: Path) -> dict[str, dict]:
+def _validate_parity(
+    training_dataset_rows: list[dict[str, str]],
+    online_store_root: Path,
+) -> dict[str, dict]:
     if not training_dataset_rows:
         return {
             "customer_realtime_features": {"ok": False, "reason": "missing_training_dataset"},

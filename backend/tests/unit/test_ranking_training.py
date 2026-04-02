@@ -8,6 +8,7 @@ import unittest
 from pathlib import Path
 
 from recsys_prd.events.io import read_jsonl
+from recsys_prd.io.tabular_ops import read_tabular_rows
 from recsys_prd.normalization.pipeline import run_hm_normalization
 from recsys_prd.ranking.dataset import build_ranking_dataset
 from recsys_prd.ranking.training import load_ranking_model, train_local_ranking_model
@@ -57,7 +58,7 @@ class RankingTrainingTests(unittest.TestCase):
         metrics = json.loads(outputs["metrics"].read_text(encoding="utf-8"))
         manifest = json.loads(outputs["manifest"].read_text(encoding="utf-8"))
         run_log = read_jsonl(outputs["run_log"])
-        rows = self._read_csv(self.dataset_path)
+        rows = read_tabular_rows(self.dataset_path)
 
         self.assertEqual(manifest["dataset"]["path"], str(self.dataset_path))
         self.assertEqual(len(run_log), 1)
@@ -242,10 +243,6 @@ class RankingTrainingTests(unittest.TestCase):
             writer = csv.DictWriter(handle, fieldnames=fieldnames)
             writer.writeheader()
             writer.writerows(rows)
-
-    def _read_csv(self, path: Path) -> list[dict[str, str]]:
-        with path.open("r", encoding="utf-8", newline="") as handle:
-            return list(csv.DictReader(handle))
 
 
 if __name__ == "__main__":

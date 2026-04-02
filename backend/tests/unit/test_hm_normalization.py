@@ -6,6 +6,7 @@ import tempfile
 import unittest
 from pathlib import Path
 
+from recsys_prd.io.tabular_ops import read_tabular_rows
 from recsys_prd.normalization.pipeline import run_hm_normalization
 from recsys_prd.validation.hm_normalized import validate_hm_normalized
 
@@ -30,10 +31,10 @@ class HmNormalizationTests(unittest.TestCase):
 
         self.assertEqual(set(outputs.keys()), {"products", "images", "customers", "transactions"})
 
-        product_rows = self._read_csv(outputs["products"])
-        customer_rows = self._read_csv(outputs["customers"])
-        transaction_rows = self._read_csv(outputs["transactions"])
-        image_rows = self._read_csv(outputs["images"])
+        product_rows = read_tabular_rows(outputs["products"])
+        customer_rows = read_tabular_rows(outputs["customers"])
+        transaction_rows = read_tabular_rows(outputs["transactions"])
+        image_rows = read_tabular_rows(outputs["images"])
 
         self.assertEqual(product_rows[0]["prod_name"], "Summer Dress")
         self.assertEqual(product_rows[0]["product_group_name"], "Garment Upper Body")
@@ -151,10 +152,6 @@ class HmNormalizationTests(unittest.TestCase):
             writer = csv.DictWriter(handle, fieldnames=fieldnames)
             writer.writeheader()
             writer.writerows(rows)
-
-    def _read_csv(self, path: Path) -> list[dict[str, str]]:
-        with path.open("r", encoding="utf-8", newline="") as handle:
-            return list(csv.DictReader(handle))
 
 
 if __name__ == "__main__":

@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from pathlib import Path
 
+from recsys_prd.config import AppSettings, get_app_settings
 from recsys_prd.features.training_dataset import (
     TRAINING_FEATURE_FIELDS,
     build_point_in_time_feature_row,
@@ -11,10 +12,8 @@ from recsys_prd.features.training_dataset import (
 )
 from recsys_prd.io.json_ops import write_json
 from recsys_prd.normalization.writer import write_dataset_bundle
-from recsys_prd.paths import DATA_ROOT, NORMALIZED_ROOT
 from recsys_prd.retrieval.candidate_retrieval import CandidateRetriever
 from recsys_prd.retrieval.contracts import RetrievalRequest
-
 
 RANKING_FIELDS = [
     "ranking_example_id",
@@ -35,16 +34,23 @@ RANKING_FIELDS = [
 
 def build_ranking_dataset(
     *,
-    normalized_root: Path = NORMALIZED_ROOT,
-    indexes_root: Path = DATA_ROOT / "indexes",
-    models_root: Path = DATA_ROOT / "models" / "training_sets",
+    normalized_root: Path | None = None,
+    indexes_root: Path | None = None,
+    models_root: Path | None = None,
     index_name: str = "fused",
     negative_sample_count: int = 4,
     max_seed_articles: int = 3,
+    settings: AppSettings | None = None,
 ) -> Path:
     """Build a ranking dataset with one positive row and retrieved negatives per label event."""
-    customers, products, image_presence, ordered_transactions = load_training_inputs(normalized_root)
-    retriever = CandidateRetriever(indexes_root=indexes_root)
+    settings = settings or get_app_settings()
+    normalized_root = normalized_root or settings.paths.normalized_root
+    indexes_root = indexes_root or settings.paths.indexes_root
+    models_root = models_root or settings.paths.models_root / "training_sets"
+    customers, products, image_presence, ordered_transactions = load_training_inputs(
+        normalized_root
+    )
+    retriever = CandidateRetriever(indexes_root=indexes_root, settings=settings)
 
     rows: list[dict[str, str]] = []
     customer_history = {}
@@ -127,7 +133,7 @@ def build_ranking_dataset(
     dataset_dir = models_root / "ranking_dataset"
     dataset_path = write_dataset_bundle(
         dataset_dir=dataset_dir,
-        dataset_filename="ranking_dataset.csv",
+        dataset_filename="ranking_dataset.parquet",
         fieldnames=RANKING_FIELDS,
         rows=rows,
         primary_key="ranking_example_id",
