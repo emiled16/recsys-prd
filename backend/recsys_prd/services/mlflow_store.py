@@ -56,9 +56,9 @@ class MLflowRunLogger:
             experiment_id="0",
             tags={"mlflow.runName": run_name, **tags},
         )
-        for key, value in params.items():
+        for key, value in _flatten_mapping(params).items():
             self.client.log_param(run.info.run_id, key, value)
-        for key, value in metrics.items():
+        for key, value in _flatten_mapping(metrics).items():
             self.client.log_metric(run.info.run_id, key, float(value))
         for artifact_path in artifact_paths:
             self.client.log_artifact(run.info.run_id, str(artifact_path))
@@ -88,3 +88,14 @@ class MLflowModelRegistrar:
         for key, value in tags.items():
             self.client.set_model_version_tag(name, version.version, key, value)
         return {"name": name, "version": version.version}
+
+
+def _flatten_mapping(values: dict[str, Any], prefix: str = "") -> dict[str, Any]:
+    flattened: dict[str, Any] = {}
+    for key, value in values.items():
+        compound_key = f"{prefix}.{key}" if prefix else key
+        if isinstance(value, dict):
+            flattened.update(_flatten_mapping(value, prefix=compound_key))
+            continue
+        flattened[compound_key] = value
+    return flattened
