@@ -4,32 +4,38 @@ import json
 from datetime import datetime, timezone
 from pathlib import Path
 
+from recsys_prd.config import AppSettings, get_app_settings
 from recsys_prd.events.io import read_jsonl, write_jsonl
-from recsys_prd.io.csv_ops import read_csv_rows
 from recsys_prd.io.json_ops import write_json
-from recsys_prd.paths import DATA_ROOT, NORMALIZED_ROOT
+from recsys_prd.io.tabular_ops import read_tabular_rows
 from recsys_prd.ranking.dataset import build_ranking_dataset
 from recsys_prd.ranking.model import RankingModel, RankingTrainingConfig, train_ranking_model
 
 
 def train_local_ranking_model(
     *,
-    normalized_root: Path = NORMALIZED_ROOT,
-    indexes_root: Path = DATA_ROOT / "indexes",
-    models_root: Path = DATA_ROOT / "models",
+    normalized_root: Path | None = None,
+    indexes_root: Path | None = None,
+    models_root: Path | None = None,
     config: RankingTrainingConfig | None = None,
+    settings: AppSettings | None = None,
 ) -> dict[str, Path]:
     """Train the local ranking baseline and write tracked artifacts."""
+    settings = settings or get_app_settings()
+    normalized_root = normalized_root or settings.paths.normalized_root
+    indexes_root = indexes_root or settings.paths.indexes_root
+    models_root = models_root or settings.paths.models_root
     training_sets_root = models_root / "training_sets"
-    dataset_path = training_sets_root / "ranking_dataset" / "ranking_dataset.csv"
+    dataset_path = training_sets_root / "ranking_dataset" / "ranking_dataset.parquet"
     if not dataset_path.exists():
         dataset_path = build_ranking_dataset(
             normalized_root=normalized_root,
             indexes_root=indexes_root,
             models_root=training_sets_root,
+            settings=settings,
         )
 
-    rows = read_csv_rows(dataset_path)
+    rows = read_tabular_rows(dataset_path)
     config = config or RankingTrainingConfig()
     model, metrics = train_ranking_model(rows, config=config)
 

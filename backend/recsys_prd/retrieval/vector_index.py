@@ -4,17 +4,21 @@ import math
 from datetime import datetime, timezone
 from pathlib import Path
 
+from recsys_prd.config import AppSettings, get_app_settings
 from recsys_prd.events.io import read_jsonl, write_jsonl
 from recsys_prd.io.json_ops import write_json
-from recsys_prd.paths import DATA_ROOT
 
 
 def build_vector_indexes(
     *,
-    embeddings_root: Path = DATA_ROOT / "embeddings",
-    indexes_root: Path = DATA_ROOT / "indexes",
+    embeddings_root: Path | None = None,
+    indexes_root: Path | None = None,
+    settings: AppSettings | None = None,
 ) -> dict[str, Path]:
     """Build local vector index artifacts from embedding outputs."""
+    settings = settings or get_app_settings()
+    embeddings_root = embeddings_root or settings.paths.embeddings_root
+    indexes_root = indexes_root or settings.paths.indexes_root
     built_at = datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
 
     text_source = embeddings_root / "text" / "article_text_embeddings.jsonl"

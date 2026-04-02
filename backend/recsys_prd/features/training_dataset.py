@@ -4,6 +4,7 @@ from datetime import datetime
 from pathlib import Path
 from typing import TypeAlias
 
+from recsys_prd.config import AppSettings, get_app_settings
 from recsys_prd.features.pit_state import (
     ArticleStats,
     CustomerArticleStats,
@@ -18,11 +19,9 @@ from recsys_prd.features.static_lookups import (
     load_image_presence,
     load_product_catalog,
 )
-from recsys_prd.io.csv_ops import read_csv_rows
 from recsys_prd.io.json_ops import write_json
+from recsys_prd.io.tabular_ops import read_tabular_rows
 from recsys_prd.normalization.writer import write_dataset_bundle
-from recsys_prd.paths import DATA_ROOT, NORMALIZED_ROOT
-
 
 StaticLookupMap: TypeAlias = dict[str, dict[str, str]]
 ImagePresenceMap: TypeAlias = dict[str, bool]
@@ -70,11 +69,17 @@ TRAINING_FIELDS = [
 
 def build_point_in_time_training_dataset(
     *,
-    normalized_root: Path = NORMALIZED_ROOT,
-    features_root: Path = DATA_ROOT / "features" / "offline",
+    normalized_root: Path | None = None,
+    features_root: Path | None = None,
+    settings: AppSettings | None = None,
 ) -> Path:
     """Build a leakage-safe point-in-time training dataset from normalized inputs."""
-    customers, products, image_presence, ordered_transactions = load_training_inputs(normalized_root)
+    settings = settings or get_app_settings()
+    normalized_root = normalized_root or settings.paths.normalized_root
+    features_root = features_root or settings.paths.features_offline_root
+    customers, products, image_presence, ordered_transactions = load_training_inputs(
+        normalized_root
+    )
 
     rows: list[dict[str, str]] = []
     customer_history: HistoryMap = {}
@@ -103,7 +108,7 @@ def build_point_in_time_training_dataset(
 
     dataset_path = write_dataset_bundle(
         dataset_dir=features_root / "training_dataset",
-        dataset_filename="point_in_time_training_dataset.csv",
+        dataset_filename="point_in_time_training_dataset.parquet",
         fieldnames=TRAINING_FIELDS,
         rows=rows,
         primary_key="label_event_id",
@@ -127,8 +132,13 @@ def load_training_inputs(
     customers = load_customer_profiles(normalized_root)
     products = load_product_catalog(normalized_root)
     image_presence = load_image_presence(normalized_root)
-    transactions = read_csv_rows(normalized_root / "transactions" / "transactions_normalized.csv")
-    ordered_transactions = sorted(transactions, key=lambda row: (row["event_time"], row["event_id"]))
+    transactions = read_tabular_rows(
+        normalized_root / "transactions" / "transactions_normalized.parquet"
+    )
+    ordered_transactions = sorted(
+        transactions,
+        key=lambda row: (row["event_time"], row["event_id"]),
+    )
     return customers, products, image_presence, ordered_transactions
 
 
@@ -146,10 +156,19 @@ def build_point_in_time_feature_row(
     """Build one leakage-safe feature row for a customer/article pair at the label time."""
     label_time = parse_event_time(transaction["event_time"])
     customer_id = transaction["customer_id"]
-    customer_events = customer_history.setdefault(customer_id, HistoricalState()).customer_events
-    article_events = article_history.setdefault(candidate_article_id, HistoricalState()).article_events
+    customer_events = customer_history.setdefault(
+        customer_id,
+        HistoricalState(),
+    ).customer_events
+    article_events = article_history.setdefault(
+        candidate_article_id,
+        HistoricalState(),
+    ).article_events
     pair_key = (customer_id, candidate_article_id)
-    pair_events = customer_article_history.setdefault(pair_key, HistoricalState()).customer_article_events
+    pair_events = customer_article_history.setdefault(
+        pair_key,
+        HistoricalState(),
+    ).customer_article_events
 
     customer_stats = build_customer_stats(customer_events, label_time)
     article_stats = build_article_stats(article_events, label_time)

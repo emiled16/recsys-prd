@@ -7,6 +7,7 @@ import tempfile
 import unittest
 from pathlib import Path
 
+from recsys_prd.io.tabular_ops import read_tabular_rows
 from recsys_prd.normalization.pipeline import run_hm_normalization
 from recsys_prd.ranking.dataset import build_ranking_dataset
 from recsys_prd.retrieval.embedding_pipeline import build_embedding_artifacts
@@ -46,7 +47,7 @@ class RankingDatasetTests(unittest.TestCase):
             max_seed_articles=2,
         )
 
-        rows = self._read_csv(dataset_path)
+        rows = read_tabular_rows(dataset_path)
         manifest = json.loads(
             (self.models_root / "ranking_dataset" / "manifest.json").read_text(encoding="utf-8")
         )
@@ -80,12 +81,23 @@ class RankingDatasetTests(unittest.TestCase):
         ]
         self.assertEqual(len(second_event_negatives), 2)
         self.assertTrue(
-            all(row["candidate_article_id"] != second_positive["target_article_id"] for row in second_event_negatives)
+            all(
+                row["candidate_article_id"] != second_positive["target_article_id"]
+                for row in second_event_negatives
+            )
         )
         self.assertTrue(all(row["candidate_rank"] in {"1", "2"} for row in second_event_negatives))
-        self.assertTrue(all(row["customer_purchase_count_all_time"] == "1" for row in second_event_negatives))
         self.assertTrue(
-            all(row["customer_article_historical_purchase_count"] == "0" for row in second_event_negatives)
+            all(
+                row["customer_purchase_count_all_time"] == "1"
+                for row in second_event_negatives
+            )
+        )
+        self.assertTrue(
+            all(
+                row["customer_article_historical_purchase_count"] == "0"
+                for row in second_event_negatives
+            )
         )
 
     def _write_raw_fixture(self) -> None:
@@ -249,10 +261,6 @@ class RankingDatasetTests(unittest.TestCase):
             writer = csv.DictWriter(handle, fieldnames=fieldnames)
             writer.writeheader()
             writer.writerows(rows)
-
-    def _read_csv(self, path: Path) -> list[dict[str, str]]:
-        with path.open("r", encoding="utf-8", newline="") as handle:
-            return list(csv.DictReader(handle))
 
 
 if __name__ == "__main__":

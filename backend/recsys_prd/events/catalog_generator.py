@@ -3,13 +3,13 @@ from __future__ import annotations
 from datetime import datetime, timedelta
 from pathlib import Path
 
-from recsys_prd.io.csv_ops import read_csv_rows
 from recsys_prd.events.ids import build_event_id
+from recsys_prd.io.tabular_ops import read_tabular_rows
 
 
 def generate_catalog_events(normalized_root: Path) -> list[dict]:
     """Generate deterministic catalog update events from normalized products."""
-    products = read_csv_rows(normalized_root / "products" / "products_normalized.csv")
+    products = read_tabular_rows(normalized_root / "products" / "products_normalized.parquet")
     events: list[dict] = []
     base_time = datetime(2020, 1, 1, 0, 0, 0)
 

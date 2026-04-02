@@ -3,14 +3,16 @@ from __future__ import annotations
 from datetime import datetime, timedelta
 from pathlib import Path
 
-from recsys_prd.io.csv_ops import read_csv_rows
 from recsys_prd.events.ids import build_event_id
+from recsys_prd.io.tabular_ops import read_tabular_rows
 
 
 def generate_interaction_events(normalized_root: Path) -> list[dict]:
     """Generate deterministic interaction events from normalized transactions."""
-    transactions = read_csv_rows(normalized_root / "transactions" / "transactions_normalized.csv")
-    products = read_csv_rows(normalized_root / "products" / "products_normalized.csv")
+    transactions = read_tabular_rows(
+        normalized_root / "transactions" / "transactions_normalized.parquet"
+    )
+    products = read_tabular_rows(normalized_root / "products" / "products_normalized.parquet")
     product_lookup = {row["article_id"]: row for row in products}
 
     events: list[dict] = []

@@ -5,10 +5,10 @@ import math
 from datetime import datetime, timezone
 from pathlib import Path
 
+from recsys_prd.config import AppSettings, get_app_settings
 from recsys_prd.events.io import write_jsonl
 from recsys_prd.features.static_lookups import load_image_manifest, load_product_catalog
 from recsys_prd.io.json_ops import write_json
-from recsys_prd.paths import DATA_ROOT, NORMALIZED_ROOT
 from recsys_prd.retrieval.representation_strategy import (
     IMAGE_MODALITY,
     LATE_FUSION_MULTIMODAL,
@@ -16,7 +16,7 @@ from recsys_prd.retrieval.representation_strategy import (
     TEXT_FIRST_BASELINE,
     TEXT_MODALITY,
 )
-
+from recsys_prd.schemas.artifacts import EmbeddingArtifactRecord
 
 EMBEDDING_DIMENSION = 12
 TEXT_MODEL_NAME = "hashing_text_encoder"
@@ -29,10 +29,14 @@ FUSION_MODEL_VERSION = "v1"
 
 def build_embedding_artifacts(
     *,
-    normalized_root: Path = NORMALIZED_ROOT,
-    embeddings_root: Path = DATA_ROOT / "embeddings",
+    normalized_root: Path | None = None,
+    embeddings_root: Path | None = None,
+    settings: AppSettings | None = None,
 ) -> dict[str, Path]:
     """Build deterministic text, image, and fused embedding artifacts for retrieval."""
+    settings = settings or get_app_settings()
+    normalized_root = normalized_root or settings.paths.normalized_root
+    embeddings_root = embeddings_root or settings.paths.embeddings_root
     products = load_product_catalog(normalized_root)
     image_manifest = load_image_manifest(normalized_root)
     generated_at = datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
@@ -174,21 +178,19 @@ def _embedding_record(
     modality_availability: dict[str, bool],
     source_path: str | None = None,
 ) -> dict:
-    record = {
-        "article_id": article_id,
-        "generated_at_utc": generated_at,
-        "model_name": model_name,
-        "model_version": model_version,
-        "modality": modality,
-        "strategy_name": strategy_name,
-        "vector": vector,
-        "vector_dimension": len(vector),
-        "structured_metadata": structured_metadata,
-        "modality_availability": modality_availability,
-    }
-    if source_path is not None:
-        record["source_path"] = source_path
-    return record
+    return EmbeddingArtifactRecord(
+        article_id=article_id,
+        generated_at_utc=generated_at,
+        model_name=model_name,
+        model_version=model_version,
+        modality=modality,
+        strategy_name=strategy_name,
+        vector=vector,
+        vector_dimension=len(vector),
+        structured_metadata=structured_metadata,
+        modality_availability=modality_availability,
+        source_path=source_path,
+    ).model_dump(exclude_none=True)
 
 
 def _artifact_manifest(

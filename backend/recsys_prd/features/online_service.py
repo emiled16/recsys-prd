@@ -3,14 +3,19 @@ from __future__ import annotations
 import json
 from pathlib import Path
 
-from recsys_prd.paths import DATA_ROOT
+from recsys_prd.config import AppSettings, get_app_settings
 
 
 class OnlineFeatureService:
     """Read online feature payloads from the local file-backed serving store."""
 
-    def __init__(self, store_root: Path = DATA_ROOT / "features" / "online_bootstrap") -> None:
-        self.store_root = store_root
+    def __init__(
+        self,
+        store_root: Path | None = None,
+        settings: AppSettings | None = None,
+    ) -> None:
+        settings = settings or get_app_settings()
+        self.store_root = store_root or settings.paths.online_feature_store_root
 
     def get_session_intent_features(self, *, customer_id: str, session_id: str) -> dict:
         payload = self._read_payload("session_intent_features.json")

@@ -7,6 +7,7 @@ import unittest
 from pathlib import Path
 
 from recsys_prd.features.training_dataset import build_point_in_time_training_dataset
+from recsys_prd.io.tabular_ops import read_tabular_rows
 from recsys_prd.normalization.pipeline import run_hm_normalization
 
 
@@ -28,7 +29,7 @@ class PointInTimeTrainingDatasetTests(unittest.TestCase):
             normalized_root=self.normalized_root,
             features_root=self.features_root,
         )
-        rows = self._read_csv(dataset_path)
+        rows = read_tabular_rows(dataset_path)
 
         self.assertEqual(len(rows), 3)
         first_row, second_row, third_row = rows
@@ -155,10 +156,6 @@ class PointInTimeTrainingDatasetTests(unittest.TestCase):
             writer = csv.DictWriter(handle, fieldnames=fieldnames)
             writer.writeheader()
             writer.writerows(rows)
-
-    def _read_csv(self, path: Path) -> list[dict[str, str]]:
-        with path.open("r", encoding="utf-8", newline="") as handle:
-            return list(csv.DictReader(handle))
 
 
 if __name__ == "__main__":

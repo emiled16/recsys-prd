@@ -3,9 +3,9 @@ from __future__ import annotations
 import math
 from pathlib import Path
 
+from recsys_prd.config import AppSettings, get_app_settings
 from recsys_prd.events.io import read_jsonl
 from recsys_prd.features.online_service import OnlineFeatureService
-from recsys_prd.paths import DATA_ROOT
 from recsys_prd.retrieval.contracts import CandidateRecord, RetrievalRequest, RetrievalResult
 from recsys_prd.retrieval.embedding_pipeline import EMBEDDING_DIMENSION, hash_embedding_payload
 
@@ -15,11 +15,15 @@ class CandidateRetriever:
 
     def __init__(
         self,
-        indexes_root: Path = DATA_ROOT / "indexes",
+        indexes_root: Path | None = None,
         online_feature_service: OnlineFeatureService | None = None,
+        settings: AppSettings | None = None,
     ) -> None:
-        self.indexes_root = indexes_root
-        self.online_feature_service = online_feature_service or OnlineFeatureService()
+        settings = settings or get_app_settings()
+        self.indexes_root = indexes_root or settings.paths.indexes_root
+        self.online_feature_service = online_feature_service or OnlineFeatureService(
+            settings=settings
+        )
 
     def retrieve(self, request: RetrievalRequest) -> RetrievalResult:
         index_records = self._load_index(request.index_name)
@@ -143,7 +147,11 @@ def _normalize(values: list[float]) -> list[float]:
     return [value / norm for value in values]
 
 
-def _cosine_similarity(query_vector: list[float], item_vector: list[float], item_norm: float) -> float:
+def _cosine_similarity(
+    query_vector: list[float],
+    item_vector: list[float],
+    item_norm: float,
+) -> float:
     query_norm = math.sqrt(sum(component * component for component in query_vector))
     if query_norm == 0.0 or item_norm == 0.0:
         return 0.0

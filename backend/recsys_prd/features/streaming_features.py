@@ -3,6 +3,7 @@ from __future__ import annotations
 from datetime import datetime
 from pathlib import Path
 
+from recsys_prd.config import AppSettings, get_app_settings
 from recsys_prd.events.io import read_jsonl
 from recsys_prd.features.online_state import (
     empty_online_state,
@@ -10,15 +11,18 @@ from recsys_prd.features.online_state import (
     trim_times,
 )
 from recsys_prd.features.online_store import write_online_store
-from recsys_prd.paths import DATA_ROOT
 
 
 def compute_online_feature_store(
     *,
-    events_root: Path = DATA_ROOT / "events",
-    store_root: Path = DATA_ROOT / "features" / "online_bootstrap",
+    events_root: Path | None = None,
+    store_root: Path | None = None,
+    settings: AppSettings | None = None,
 ) -> dict[str, Path]:
     """Compute local online feature snapshots from replayed events."""
+    settings = settings or get_app_settings()
+    events_root = events_root or settings.paths.events_root
+    store_root = store_root or settings.paths.online_feature_store_root
     replay_dir = events_root / "replay_batches"
     interaction_events = read_jsonl(replay_dir / "interaction_events.jsonl")
     catalog_events = read_jsonl(replay_dir / "catalog_events.jsonl")
@@ -42,7 +46,13 @@ def _apply_event(state: dict[str, dict], event: dict) -> None:
     event_type = event["event_type"]
     event_time = _parse_time(event["event_time"])
 
-    if event_type in {"product_view", "product_click", "add_to_cart", "wishlist_add", "search_query"}:
+    if event_type in {
+        "product_view",
+        "product_click",
+        "add_to_cart",
+        "wishlist_add",
+        "search_query",
+    }:
         session_key = _session_key(event["customer_id"], event["session_id"])
         session_state = state["sessions"][session_key]
         session_state.last_event_time = event_time
@@ -76,7 +86,8 @@ def _apply_event(state: dict[str, dict], event: dict) -> None:
             article_state.last_catalog_update = event_time
         if event_type == "price_change":
             new_price = event.get("new_price", "")
-            article_state.current_price = float(new_price) if new_price else article_state.current_price
+            if new_price:
+                article_state.current_price = float(new_price)
             article_state.last_catalog_update = event_time
         if event_type == "product_metadata_update":
             article_state.last_catalog_update = event_time
@@ -106,7 +117,9 @@ def _build_session_features(sessions: dict[str, object]) -> dict[str, dict]:
 def _build_customer_features(customers: dict[str, object]) -> dict[str, dict]:
     output: dict[str, dict] = {}
     for customer_id, customer in customers.items():
-        reference_time = _latest_time(customer.purchases + customer.cart_adds + customer.wishlist_adds)
+        reference_time = _latest_time(
+            customer.purchases + customer.cart_adds + customer.wishlist_adds
+        )
         if reference_time is None:
             continue
         purchases_30d = trim_times(customer.purchases, reference_time, days=30)
@@ -132,7 +145,9 @@ def _build_article_features(articles: dict[str, object]) -> dict[str, dict]:
         purchase_times = [event_time for event_time, _ in article.purchases]
         purchase_reference = _latest_time(purchase_times)
         catalog_reference = article.last_catalog_update
-        reference_time = _latest_time([time for time in [purchase_reference, catalog_reference] if time])
+        reference_time = _latest_time(
+            [time for time in [purchase_reference, catalog_reference] if time]
+        )
         if reference_time is None:
             continue
         purchase_count_1d = len(trim_times(purchase_times, reference_time, days=1))

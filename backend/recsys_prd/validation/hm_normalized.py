@@ -2,8 +2,9 @@ from __future__ import annotations
 
 from pathlib import Path
 
-from recsys_prd.io.csv_ops import read_csv_rows
+from recsys_prd.config import AppSettings, get_app_settings
 from recsys_prd.io.json_ops import write_json
+from recsys_prd.io.tabular_ops import read_tabular_rows
 from recsys_prd.normalization.contracts import (
     CUSTOMER_FIELDS,
     IMAGE_FIELDS,
@@ -13,36 +14,39 @@ from recsys_prd.normalization.contracts import (
     REQUIRED_TRANSACTION_FIELDS,
     TRANSACTION_FIELDS,
 )
-from recsys_prd.paths import NORMALIZED_ROOT, REPORTS_ROOT
 
 
 def validate_hm_normalized(
     *,
-    normalized_root: Path = NORMALIZED_ROOT,
-    reports_root: Path = REPORTS_ROOT,
+    normalized_root: Path | None = None,
+    reports_root: Path | None = None,
+    settings: AppSettings | None = None,
 ) -> dict:
     """Validate normalized outputs for schema, required fields, and key uniqueness."""
+    settings = settings or get_app_settings()
+    normalized_root = normalized_root or settings.paths.normalized_root
+    reports_root = reports_root or settings.paths.reports_root
     checks = {
         "products": _validate_dataset(
-            dataset_path=normalized_root / "products" / "products_normalized.csv",
+            dataset_path=normalized_root / "products" / "products_normalized.parquet",
             expected_fields=PRODUCT_FIELDS,
             primary_key="article_id",
             required_fields=REQUIRED_PRODUCT_FIELDS,
         ),
         "images": _validate_dataset(
-            dataset_path=normalized_root / "images" / "product_images_manifest.csv",
+            dataset_path=normalized_root / "images" / "product_images_manifest.parquet",
             expected_fields=IMAGE_FIELDS,
             primary_key="image_path",
             required_fields=["article_id", "image_path", "image_kind"],
         ),
         "customers": _validate_dataset(
-            dataset_path=normalized_root / "customers" / "customers_normalized.csv",
+            dataset_path=normalized_root / "customers" / "customers_normalized.parquet",
             expected_fields=CUSTOMER_FIELDS,
             primary_key="customer_id",
             required_fields=REQUIRED_CUSTOMER_FIELDS,
         ),
         "transactions": _validate_dataset(
-            dataset_path=normalized_root / "transactions" / "transactions_normalized.csv",
+            dataset_path=normalized_root / "transactions" / "transactions_normalized.parquet",
             expected_fields=TRANSACTION_FIELDS,
             primary_key="event_id",
             required_fields=REQUIRED_TRANSACTION_FIELDS,
@@ -63,7 +67,7 @@ def _validate_dataset(
     primary_key: str,
     required_fields: list[str],
 ) -> dict:
-    rows = read_csv_rows(dataset_path)
+    rows = read_tabular_rows(dataset_path)
     actual_fields = list(rows[0].keys()) if rows else expected_fields
     missing_required = sorted(
         {
