@@ -6,6 +6,7 @@ from pathlib import Path
 from recsys_prd.events.replay import publish_local_replay
 from recsys_prd.events.validation import validate_local_replay
 from recsys_prd.ingestion.hm_raw import ingest_hm_raw
+from recsys_prd.features.training_dataset import build_point_in_time_training_dataset
 from recsys_prd.normalization.pipeline import run_hm_normalization
 from recsys_prd.validation.hm_normalized import validate_hm_normalized
 
@@ -45,6 +46,10 @@ def build_parser() -> argparse.ArgumentParser:
         "validate-hm-events",
         help="Validate generated local replay batches.",
     )
+    subparsers.add_parser(
+        "build-pit-training-set",
+        help="Build a point-in-time correct offline training dataset.",
+    )
 
     return parser
 
@@ -81,6 +86,11 @@ def main() -> int:
     if args.command == "validate-hm-events":
         result = validate_local_replay()
         print(f"Validation OK: {result['ok']}")
+        return 0
+
+    if args.command == "build-pit-training-set":
+        path = build_point_in_time_training_dataset()
+        print(f"training_dataset: {path}")
         return 0
 
     parser.error(f"Unsupported command: {args.command}")

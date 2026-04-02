@@ -56,6 +56,12 @@ python3 backend/scripts/ingest_hm_raw.py generate-hm-events
 python3 backend/scripts/ingest_hm_raw.py validate-hm-events
 ```
 
+Build the first point-in-time correct offline training dataset with:
+
+```bash
+python3 backend/scripts/ingest_hm_raw.py build-pit-training-set
+```
+
 ## Planned System Capabilities
 
 - Historical dataset ingestion and normalization

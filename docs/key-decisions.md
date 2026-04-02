@@ -69,3 +69,13 @@
 - Decision: Define offline feature views with explicit timestamp fields so static views are clearly separated from point-in-time aggregate views.
 - Rationale: This keeps T18 simpler because the join logic only needs point-in-time filtering for the views that declare event-time semantics.
 - Consequences: Future feature materialization code should preserve these semantics and avoid backfilling event-time features as if they were static snapshots.
+
+## [2026-04-01] D-008: Build point-in-time joins with ordered historical replay before adopting a feature-store engine
+- Plan: v1.1
+- Context: The project needs leakage-safe training rows now, while Feast-style declarative retrieval and larger data tooling are still ahead in the plan.
+- Options considered:
+  - Delay training joins until a full feature-store stack is present.
+  - Implement an ordered historical replay that computes each label row from prior events only.
+- Decision: Build the first point-in-time training dataset by replaying normalized transactions in time order and deriving feature values from prior events only.
+- Rationale: This makes the leakage boundary explicit, testable, and reproducible without blocking on future infrastructure choices.
+- Consequences: Later feature-store integration should preserve the same join semantics even if the execution engine changes.
