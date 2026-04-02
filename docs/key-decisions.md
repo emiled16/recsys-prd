@@ -119,3 +119,13 @@
 - Decision: Use an explicit offline-to-online mapping for parity validation and keep freshness validation as a separate check.
 - Rationale: This avoids false failures where offline-only or online-only features are expected to differ.
 - Consequences: As the feature platform grows, new overlapping fields should be added to the mapping deliberately instead of assuming automatic parity.
+
+## [2026-04-01] D-013: Use staged late fusion for multimodal retrieval evolution
+- Plan: v1.1
+- Context: The retrieval layer needs a credible multimodal path, but the project should still ship an inspectable first baseline before full fusion complexity arrives.
+- Options considered:
+  - Start directly with a tightly coupled multimodal encoder.
+  - Start with text-first retrieval and evolve to late fusion over separate text and image embeddings.
+- Decision: Use a staged strategy: text-first retrieval baseline first, then late-fusion multimodal retrieval while preserving unimodal artifacts.
+- Rationale: This keeps the early pipeline simpler to debug and preserves fallback behavior when image coverage is incomplete.
+- Consequences: T24 should generate unimodal embeddings separately and treat fused embeddings as an additional derived artifact rather than the only representation.

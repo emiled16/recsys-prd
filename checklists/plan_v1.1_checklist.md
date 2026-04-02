@@ -31,7 +31,7 @@
 - [x] T22: Validate feature parity and freshness
 
 ## Milestone M5: Retrieval and Ranking
-- [ ] T23: Define multimodal representation strategy
+- [x] T23: Define multimodal representation strategy
 - [ ] T24: Build embedding generation pipeline
 - [ ] T25: Build vector indexing pipeline
 - [ ] T26: Implement candidate retrieval logic
