@@ -24,7 +24,7 @@
 
 ## Milestone M4: Feature Platform
 - [x] T17: Define offline feature entities and views
-- [ ] T18: Build point-in-time correct training joins
+- [x] T18: Build point-in-time correct training joins
 - [ ] T19: Define online feature requirements
 - [ ] T20: Build streaming feature computation
 - [ ] T21: Expose online feature serving
