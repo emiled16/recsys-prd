@@ -6,7 +6,7 @@ import unittest
 from pathlib import Path
 from unittest.mock import patch
 
-from recsys_prd.cli import main, run_feature_command
+from recsys_prd.cli import main, run_feature_command, run_retrieval_command
 from recsys_prd.config import PathSettings
 
 
@@ -57,3 +57,12 @@ class ConfigAndCliRefactorTests(unittest.TestCase):
 
         self.assertEqual(status, 0)
         mock_handler.assert_called_once()
+
+    def test_retrieval_command_routes_to_qdrant_loader(self) -> None:
+        args = argparse.Namespace(command="build-qdrant-index")
+        with patch("recsys_prd.cli.load_qdrant_indexes") as mock_loader:
+            mock_loader.return_value = {"text_count": 2, "fused_count": 2}
+            status = run_retrieval_command(args, settings=object())
+
+        self.assertEqual(status, 0)
+        mock_loader.assert_called_once()

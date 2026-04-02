@@ -24,7 +24,7 @@ from recsys_prd.retrieval.contracts import RetrievalRequest
 from recsys_prd.retrieval.embedding_pipeline import build_embedding_artifacts
 from recsys_prd.retrieval.vector_index import build_vector_indexes
 from recsys_prd.services.mlflow_store import probe_mlflow_tracking
-from recsys_prd.services.qdrant_store import ensure_qdrant_connection
+from recsys_prd.services.qdrant_store import ensure_qdrant_connection, load_qdrant_indexes
 from recsys_prd.services.redpanda import (
     KafkaReplayPublisher,
     bootstrap_redpanda_topics,
@@ -129,6 +129,10 @@ def build_parser() -> argparse.ArgumentParser:
     subparsers.add_parser(
         "probe-qdrant",
         help="Verify Qdrant connectivity and collection setup.",
+    )
+    subparsers.add_parser(
+        "build-qdrant-index",
+        help="Load persisted embedding artifacts into Qdrant collections.",
     )
     subparsers.add_parser(
         "publish-replay-to-kafka",
@@ -298,6 +302,9 @@ def run_retrieval_command(args: argparse.Namespace, settings: AppSettings) -> in
         return 0
     if args.command == "probe-qdrant":
         print(ensure_qdrant_connection(settings=settings))
+        return 0
+    if args.command == "build-qdrant-index":
+        print(load_qdrant_indexes(settings=settings))
         return 0
     if args.command == "retrieve-candidates":
         retriever = CandidateRetriever(settings=settings)
