@@ -63,6 +63,12 @@ Build the first point-in-time correct offline training dataset with:
 python3 backend/scripts/ingest_hm_raw.py build-pit-training-set
 ```
 
+Compute local online feature snapshots from replayed events with:
+
+```bash
+python3 backend/scripts/ingest_hm_raw.py compute-online-features
+```
+
 ## Planned System Capabilities
 
 - Historical dataset ingestion and normalization
