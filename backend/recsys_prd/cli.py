@@ -8,6 +8,7 @@ from recsys_prd.config import AppSettings, get_app_settings
 from recsys_prd.events.replay import publish_local_replay
 from recsys_prd.events.validation import validate_local_replay
 from recsys_prd.features.consumer import consume_feature_updates
+from recsys_prd.features.feast_store import apply_feast_repo, parse_feast_end_date
 from recsys_prd.features.online_service import OnlineFeatureService
 from recsys_prd.features.online_store import RedisOnlineFeatureStore
 from recsys_prd.features.parity_validation import validate_feature_parity_and_freshness
@@ -99,6 +100,19 @@ def build_parser() -> argparse.ArgumentParser:
     subparsers.add_parser(
         "consume-feature-updates",
         help="Consume broker events and apply Redis online feature updates.",
+    )
+    apply_feast_parser = subparsers.add_parser(
+        "apply-feast-repo",
+        help="Apply Feast definitions and optionally materialize incremental online features.",
+    )
+    apply_feast_parser.add_argument(
+        "--materialize-incremental",
+        action="store_true",
+        help="Run Feast incremental materialization after applying the repo.",
+    )
+    apply_feast_parser.add_argument(
+        "--end-date",
+        help="Optional ISO timestamp used as the incremental materialization upper bound.",
     )
     subparsers.add_parser(
         "probe-redis",
@@ -253,6 +267,16 @@ def run_feature_command(args: argparse.Namespace, settings: AppSettings) -> int:
         return 0
     if args.command == "consume-feature-updates":
         print(consume_feature_updates(settings=settings))
+        return 0
+    if args.command == "apply-feast-repo":
+        end_date = parse_feast_end_date(args.end_date) if args.end_date else None
+        print(
+            apply_feast_repo(
+                settings=settings,
+                materialize_incremental=args.materialize_incremental,
+                end_date=end_date,
+            )
+        )
         return 0
     if args.command == "probe-redis":
         print(RedisOnlineFeatureStore(settings=settings).probe())

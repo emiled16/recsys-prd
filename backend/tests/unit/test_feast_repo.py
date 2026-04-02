@@ -1,9 +1,11 @@
 from __future__ import annotations
 
 import unittest
+from datetime import datetime, timezone
 from pathlib import Path
 
 from recsys_prd.config import PathSettings
+from recsys_prd.features.feast_store import apply_feast_repo, parse_feast_end_date
 
 
 class FeastRepoTests(unittest.TestCase):
@@ -123,6 +125,38 @@ class FeastRepoTests(unittest.TestCase):
                 "minutes_since_last_catalog_update",
             },
         )
+
+    def test_apply_feast_repo_uses_store_and_optional_materialization(self) -> None:
+        class FakeFeatureStore:
+            def __init__(self) -> None:
+                self.applied_objects = None
+                self.materialized_end_date = None
+
+            def apply(self, objects, partial: bool) -> None:
+                self.applied_objects = list(objects)
+                self.partial = partial
+
+            def materialize_incremental(self, end_date: datetime) -> None:
+                self.materialized_end_date = end_date
+
+        fake_store = FakeFeatureStore()
+        result = apply_feast_repo(
+            settings=type("Settings", (), {"paths": PathSettings()})(),
+            materialize_incremental=True,
+            end_date=datetime(2026, 4, 2, tzinfo=timezone.utc),
+            store=fake_store,
+        )
+
+        self.assertGreater(result["applied_object_count"], 0)
+        self.assertTrue(result["materialized_incremental"])
+        self.assertEqual(result["materialize_end_date"], "2026-04-02T00:00:00+00:00")
+        self.assertFalse(fake_store.partial)
+        self.assertIsNotNone(fake_store.materialized_end_date)
+
+    def test_parse_feast_end_date_accepts_z_suffix(self) -> None:
+        parsed = parse_feast_end_date("2026-04-02T00:00:00Z")
+
+        self.assertEqual(parsed, datetime(2026, 4, 2, tzinfo=timezone.utc))
 
 
 if __name__ == "__main__":
