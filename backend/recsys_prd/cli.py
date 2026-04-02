@@ -7,7 +7,9 @@ from typing import Sequence
 from recsys_prd.config import AppSettings, get_app_settings
 from recsys_prd.events.replay import publish_local_replay
 from recsys_prd.events.validation import validate_local_replay
+from recsys_prd.features.consumer import consume_feature_updates
 from recsys_prd.features.online_service import OnlineFeatureService
+from recsys_prd.features.online_store import RedisOnlineFeatureStore
 from recsys_prd.features.parity_validation import validate_feature_parity_and_freshness
 from recsys_prd.features.streaming_features import compute_online_feature_store
 from recsys_prd.features.training_dataset import build_point_in_time_training_dataset
@@ -20,6 +22,13 @@ from recsys_prd.retrieval.candidate_retrieval import CandidateRetriever
 from recsys_prd.retrieval.contracts import RetrievalRequest
 from recsys_prd.retrieval.embedding_pipeline import build_embedding_artifacts
 from recsys_prd.retrieval.vector_index import build_vector_indexes
+from recsys_prd.services.mlflow_store import probe_mlflow_tracking
+from recsys_prd.services.qdrant_store import ensure_qdrant_connection
+from recsys_prd.services.redpanda import (
+    KafkaReplayPublisher,
+    bootstrap_redpanda_topics,
+    validate_broker_replay,
+)
 from recsys_prd.validation.hm_normalized import validate_hm_normalized
 
 
@@ -59,6 +68,10 @@ def build_parser() -> argparse.ArgumentParser:
         help="Validate generated local replay batches.",
     )
     subparsers.add_parser(
+        "bootstrap-redpanda-topics",
+        help="Create the local Redpanda topics needed by replay and serving.",
+    )
+    subparsers.add_parser(
         "build-pit-training-set",
         help="Build a point-in-time correct offline training dataset.",
     )
@@ -84,12 +97,32 @@ def build_parser() -> argparse.ArgumentParser:
         help="Validate online feature freshness and offline-online parity.",
     )
     subparsers.add_parser(
+        "consume-feature-updates",
+        help="Consume broker events and apply Redis online feature updates.",
+    )
+    subparsers.add_parser(
+        "probe-redis",
+        help="Verify Redis connectivity for the online feature store.",
+    )
+    subparsers.add_parser(
         "build-embeddings",
         help="Build deterministic text, image, and fused retrieval embeddings.",
     )
     subparsers.add_parser(
         "build-vector-index",
         help="Build local vector index artifacts from embedding outputs.",
+    )
+    subparsers.add_parser(
+        "probe-qdrant",
+        help="Verify Qdrant connectivity and collection setup.",
+    )
+    subparsers.add_parser(
+        "publish-replay-to-kafka",
+        help="Publish replay artifacts into broker topics.",
+    )
+    subparsers.add_parser(
+        "validate-broker-replay",
+        help="Validate replay message counts after broker publishing.",
     )
     subparsers.add_parser(
         "build-ranking-dataset",
@@ -102,6 +135,10 @@ def build_parser() -> argparse.ArgumentParser:
     subparsers.add_parser(
         "register-ranking-model",
         help="Register the latest trained ranking model as a candidate model version.",
+    )
+    subparsers.add_parser(
+        "probe-mlflow",
+        help="Verify MLflow tracking and artifact logging.",
     )
     retrieve_parser = subparsers.add_parser(
         "retrieve-candidates",
@@ -165,6 +202,20 @@ def run_event_command(args: argparse.Namespace, settings: AppSettings) -> int:
         result = validate_local_replay(settings=settings)
         print(f"Validation OK: {result['ok']}")
         return 0
+    if args.command == "bootstrap-redpanda-topics":
+        result = bootstrap_redpanda_topics(settings=settings)
+        print(result)
+        return 0
+    if args.command == "publish-replay-to-kafka":
+        manifest_path = settings.paths.events_root / "replay_batches" / "manifest.json"
+        result = KafkaReplayPublisher(settings=settings).publish_manifest(manifest_path)
+        print(result)
+        return 0
+    if args.command == "validate-broker-replay":
+        manifest_path = settings.paths.events_root / "replay_batches" / "manifest.json"
+        result = validate_broker_replay(settings=settings, manifest_path=manifest_path)
+        print(result)
+        return 0
     return -1
 
 
@@ -200,6 +251,12 @@ def run_feature_command(args: argparse.Namespace, settings: AppSettings) -> int:
         result = validate_feature_parity_and_freshness(settings=settings)
         print(f"Validation OK: {result['ok']}")
         return 0
+    if args.command == "consume-feature-updates":
+        print(consume_feature_updates(settings=settings))
+        return 0
+    if args.command == "probe-redis":
+        print(RedisOnlineFeatureStore(settings=settings).probe())
+        return 0
     return -1
 
 
@@ -214,6 +271,9 @@ def run_retrieval_command(args: argparse.Namespace, settings: AppSettings) -> in
         outputs = build_vector_indexes(settings=settings)
         for name, path in outputs.items():
             print(f"{name}: {path}")
+        return 0
+    if args.command == "probe-qdrant":
+        print(ensure_qdrant_connection(settings=settings))
         return 0
     if args.command == "retrieve-candidates":
         retriever = CandidateRetriever(settings=settings)
@@ -255,6 +315,9 @@ def run_ranking_command(args: argparse.Namespace, settings: AppSettings) -> int:
         outputs = register_candidate_ranking_model(settings=settings)
         for name, path in outputs.items():
             print(f"{name}: {path}")
+        return 0
+    if args.command == "probe-mlflow":
+        print(probe_mlflow_tracking(settings=settings))
         return 0
     return -1
 
