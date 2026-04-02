@@ -45,3 +45,5 @@ This is the append-only execution log for the recommendation system project. Eac
 [2026-04-01 23:12:00] [plan v1.1] [DONE] T19: Added online feature requirement definitions covering entities, freshness targets, and streaming-input mappings
 [2026-04-01 23:21:00] [plan v1.1] [START] T20: Build streaming feature computation
 [2026-04-01 23:21:00] [plan v1.1] [DONE] T20: Added local online feature computation from replayed events plus snapshot-store outputs and unit coverage
+[2026-04-01 23:28:00] [plan v1.1] [START] T21: Expose online feature serving
+[2026-04-01 23:28:00] [plan v1.1] [DONE] T21: Added a local online feature service and CLI retrieval path for session, customer, and article payloads

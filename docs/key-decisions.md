@@ -99,3 +99,13 @@
 - Decision: Materialize computed online features into JSON documents under `data/features/online_bootstrap/` as the first local serving-store representation.
 - Rationale: This keeps the streaming computation and retrieval contract explicit while avoiding premature infrastructure coupling.
 - Consequences: T21 can read from this store first, and a later Redis-backed implementation should preserve the same logical feature names and payload shapes.
+
+## [2026-04-01] D-011: Expose local online features through a service abstraction before adding an API layer
+- Plan: v1.1
+- Context: Inference code needs a stable way to fetch online features, but a dedicated HTTP serving surface would be premature before the recommendation-serving path is built.
+- Options considered:
+  - Read JSON files directly wherever features are needed.
+  - Introduce a small service abstraction that owns lookup behavior over the local store.
+- Decision: Add an `OnlineFeatureService` that reads the local store and exposes typed lookup methods for session, customer, and article features.
+- Rationale: This keeps the retrieval interface stable while allowing the storage backend to change later without touching inference callers.
+- Consequences: T32 can depend on the service abstraction instead of file paths, and a later Redis-backed implementation can swap in behind the same interface.
