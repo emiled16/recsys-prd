@@ -68,7 +68,7 @@
 - [x] T55: Update ranking dataset generation to consume Feast-built training rows
 
 ## Milestone M7: Replace Deterministic Embeddings and Local Vector Indexes
-- [ ] T56: Introduce a `TextEmbedder` abstraction with a real `SentenceTransformerTextEmbedder` implementation
+- [x] T56: Introduce a `TextEmbedder` abstraction with a real `SentenceTransformerTextEmbedder` implementation
 - [ ] T57: Introduce an `ImageEmbedder` abstraction with a real `OpenClipImageEmbedder` implementation
 - [ ] T58: Refactor `build_embedding_artifacts()` to use pluggable embedder implementations
 - [ ] T59: Implement a `QdrantIndexManager` that creates collections and upserts embedding records
