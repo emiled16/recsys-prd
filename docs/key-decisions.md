@@ -89,3 +89,13 @@
 - Decision: Keep online feature requirements focused on session intent, realtime customer behavior, and realtime article state.
 - Rationale: This keeps the serving path lean and reserves static profile or catalog attributes for batch/snapshot usage unless a clear latency need appears later.
 - Consequences: T20 should prioritize a small number of high-value streaming aggregates instead of building a general-purpose online mirror of the offline feature set.
+
+## [2026-04-01] D-010: Materialize online features into a file-backed local store before introducing Redis
+- Plan: v1.1
+- Context: The plan eventually calls for an online feature store, but the project still needs a concrete local serving artifact before infrastructure-heavy work lands.
+- Options considered:
+  - Block online feature work on Redis integration.
+  - Compute the feature snapshots now and store them in a simple file-backed local format.
+- Decision: Materialize computed online features into JSON documents under `data/features/online_bootstrap/` as the first local serving-store representation.
+- Rationale: This keeps the streaming computation and retrieval contract explicit while avoiding premature infrastructure coupling.
+- Consequences: T21 can read from this store first, and a later Redis-backed implementation should preserve the same logical feature names and payload shapes.

@@ -6,6 +6,7 @@ from pathlib import Path
 from recsys_prd.events.replay import publish_local_replay
 from recsys_prd.events.validation import validate_local_replay
 from recsys_prd.ingestion.hm_raw import ingest_hm_raw
+from recsys_prd.features.streaming_features import compute_online_feature_store
 from recsys_prd.features.training_dataset import build_point_in_time_training_dataset
 from recsys_prd.normalization.pipeline import run_hm_normalization
 from recsys_prd.validation.hm_normalized import validate_hm_normalized
@@ -50,6 +51,10 @@ def build_parser() -> argparse.ArgumentParser:
         "build-pit-training-set",
         help="Build a point-in-time correct offline training dataset.",
     )
+    subparsers.add_parser(
+        "compute-online-features",
+        help="Compute local online feature snapshots from replayed events.",
+    )
 
     return parser
 
@@ -91,6 +96,12 @@ def main() -> int:
     if args.command == "build-pit-training-set":
         path = build_point_in_time_training_dataset()
         print(f"training_dataset: {path}")
+        return 0
+
+    if args.command == "compute-online-features":
+        outputs = compute_online_feature_store()
+        for name, path in outputs.items():
+            print(f"{name}: {path}")
         return 0
 
     parser.error(f"Unsupported command: {args.command}")

@@ -43,3 +43,5 @@ This is the append-only execution log for the recommendation system project. Eac
 [2026-04-01 23:04:00] [plan v1.1] [DONE] T18: Added a leakage-safe offline training dataset builder, join manifest output, and unit coverage for historical feature retrieval
 [2026-04-01 23:12:00] [plan v1.1] [START] T19: Define online feature requirements
 [2026-04-01 23:12:00] [plan v1.1] [DONE] T19: Added online feature requirement definitions covering entities, freshness targets, and streaming-input mappings
+[2026-04-01 23:21:00] [plan v1.1] [START] T20: Build streaming feature computation
+[2026-04-01 23:21:00] [plan v1.1] [DONE] T20: Added local online feature computation from replayed events plus snapshot-store outputs and unit coverage
