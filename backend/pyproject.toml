@@ -8,6 +8,8 @@ packages = [{ include = "recsys_prd" }]
 
 [tool.poetry.dependencies]
 python = "^3.13"
+pydantic = "^2.12.5"
+pydantic-settings = "^2.8.1"
 
 [tool.poetry.group.dev.dependencies]
 pytest = "^8.3.5"
