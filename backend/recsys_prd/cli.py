@@ -12,6 +12,7 @@ from recsys_prd.features.streaming_features import compute_online_feature_store
 from recsys_prd.features.training_dataset import build_point_in_time_training_dataset
 from recsys_prd.normalization.pipeline import run_hm_normalization
 from recsys_prd.ranking.dataset import build_ranking_dataset
+from recsys_prd.ranking.registry import register_candidate_ranking_model
 from recsys_prd.ranking.training import train_local_ranking_model
 from recsys_prd.retrieval.candidate_retrieval import CandidateRetriever
 from recsys_prd.retrieval.contracts import RetrievalRequest
@@ -95,6 +96,10 @@ def build_parser() -> argparse.ArgumentParser:
     subparsers.add_parser(
         "train-ranking-model",
         help="Train the local baseline ranking model and write tracked artifacts.",
+    )
+    subparsers.add_parser(
+        "register-ranking-model",
+        help="Register the latest trained ranking model as a candidate model version.",
     )
     retrieve_parser = subparsers.add_parser(
         "retrieve-candidates",
@@ -210,6 +215,12 @@ def main() -> int:
 
     if args.command == "train-ranking-model":
         outputs = train_local_ranking_model()
+        for name, path in outputs.items():
+            print(f"{name}: {path}")
+        return 0
+
+    if args.command == "register-ranking-model":
+        outputs = register_candidate_ranking_model()
         for name, path in outputs.items():
             print(f"{name}: {path}")
         return 0

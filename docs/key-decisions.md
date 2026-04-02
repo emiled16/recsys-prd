@@ -179,3 +179,13 @@
 - Decision: Train the first ranking model as a deterministic logistic baseline over numeric and hashed categorical ranking features, with serialized weights, metrics, and tracked run manifests.
 - Rationale: This creates a concrete training workflow and inspectable model artifact now while preserving a clean migration path toward richer ranking models later.
 - Consequences: T29 and T31 should treat the saved model artifact and run metadata as the stable interface, even if the internal trainer later moves to MLflow and deeper architectures.
+
+## [2026-04-02] D-019: Register promoted local models through a file-backed candidate registry before adding MLflow
+- Plan: v1.1
+- Context: T29 needs model versioning and lineage now, but the stack has not yet introduced the external tracking and registry services named in the long-term system design.
+- Options considered:
+  - Block model registration on MLflow integration.
+  - Create a lightweight local registry that records candidate versions, pointers, metrics, and lineage from training artifacts.
+- Decision: Register candidate ranking models into a file-backed local registry under `data/models/registry/`, with append-only history and a `latest_candidate` pointer per model family.
+- Rationale: This gives downstream evaluation and serving code a stable promoted-model reference without forcing early infrastructure dependencies.
+- Consequences: Future MLflow-backed registration should preserve the same logical fields for run ID, artifact paths, metrics, and stage transitions so local callers do not need a second contract.

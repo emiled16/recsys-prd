@@ -76,6 +76,12 @@ Train the first local ranking baseline and write tracked model artifacts with:
 python3 backend/scripts/ingest_hm_raw.py train-ranking-model
 ```
 
+Register the latest trained ranking model into the local candidate registry with:
+
+```bash
+python3 backend/scripts/ingest_hm_raw.py register-ranking-model
+```
+
 Compute local online feature snapshots from replayed events with:
 
 ```bash
