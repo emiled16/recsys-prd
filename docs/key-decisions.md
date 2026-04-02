@@ -109,3 +109,13 @@
 - Decision: Add an `OnlineFeatureService` that reads the local store and exposes typed lookup methods for session, customer, and article features.
 - Rationale: This keeps the retrieval interface stable while allowing the storage backend to change later without touching inference callers.
 - Consequences: T32 can depend on the service abstraction instead of file paths, and a later Redis-backed implementation can swap in behind the same interface.
+
+## [2026-04-01] D-012: Validate parity using explicitly mapped overlapping features
+- Plan: v1.1
+- Context: Offline and online feature sets are not identical, so parity checks need to compare only the fields whose semantics are intended to match.
+- Options considered:
+  - Compare every offline feature to every online feature.
+  - Maintain an explicit mapping for the overlapping logical features and validate only those pairs.
+- Decision: Use an explicit offline-to-online mapping for parity validation and keep freshness validation as a separate check.
+- Rationale: This avoids false failures where offline-only or online-only features are expected to differ.
+- Consequences: As the feature platform grows, new overlapping fields should be added to the mapping deliberately instead of assuming automatic parity.

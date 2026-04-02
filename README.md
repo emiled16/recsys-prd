@@ -75,6 +75,12 @@ Read one payload back from the local online feature store with:
 python3 backend/scripts/ingest_hm_raw.py get-online-features --entity customer --customer-id 0001
 ```
 
+Validate online freshness and offline-online feature parity with:
+
+```bash
+python3 backend/scripts/ingest_hm_raw.py validate-feature-parity
+```
+
 ## Planned System Capabilities
 
 - Historical dataset ingestion and normalization

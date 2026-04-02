@@ -6,6 +6,7 @@ from pathlib import Path
 from recsys_prd.events.replay import publish_local_replay
 from recsys_prd.events.validation import validate_local_replay
 from recsys_prd.ingestion.hm_raw import ingest_hm_raw
+from recsys_prd.features.parity_validation import validate_feature_parity_and_freshness
 from recsys_prd.features.online_service import OnlineFeatureService
 from recsys_prd.features.streaming_features import compute_online_feature_store
 from recsys_prd.features.training_dataset import build_point_in_time_training_dataset
@@ -69,6 +70,10 @@ def build_parser() -> argparse.ArgumentParser:
     get_online_parser.add_argument("--customer-id", help="Customer identifier.")
     get_online_parser.add_argument("--session-id", help="Session identifier.")
     get_online_parser.add_argument("--article-id", help="Article identifier.")
+    subparsers.add_parser(
+        "validate-feature-parity",
+        help="Validate online feature freshness and offline-online parity.",
+    )
 
     return parser
 
@@ -132,6 +137,11 @@ def main() -> int:
             print(service.get_customer_realtime_features(customer_id=args.customer_id or ""))
             return 0
         print(service.get_article_realtime_features(article_id=args.article_id or ""))
+        return 0
+
+    if args.command == "validate-feature-parity":
+        result = validate_feature_parity_and_freshness()
+        print(f"Validation OK: {result['ok']}")
         return 0
 
     parser.error(f"Unsupported command: {args.command}")
