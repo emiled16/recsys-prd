@@ -63,3 +63,5 @@ This is the append-only execution log for the recommendation system project. Eac
 [2026-04-02 00:18:00] [extra request] [DONE] Added backend Poetry dev dependencies, lint/test tool configuration, and a generated lockfile for reproducible local tooling
 [2026-04-02 00:34:00] [plan v1.1] [START] T28: Implement ranking model training
 [2026-04-02 00:34:00] [plan v1.1] [DONE] T28: Added a deterministic logistic ranking baseline with tracked training runs, serialized model artifacts, CLI support, and unit coverage
+[2026-04-02 00:43:00] [plan v1.1] [START] T29: Register candidate models and metadata
+[2026-04-02 00:43:00] [plan v1.1] [DONE] T29: Added a file-backed candidate model registry with lineage metadata, latest-candidate pointers, CLI support, and unit coverage

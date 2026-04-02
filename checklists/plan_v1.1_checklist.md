@@ -37,7 +37,7 @@
 - [x] T26: Implement candidate retrieval logic
 - [x] T27: Build ranking dataset generation
 - [x] T28: Implement ranking model training
-- [ ] T29: Register candidate models and metadata
+- [x] T29: Register candidate models and metadata
 
 ## Milestone M6: Evaluation, Serving, and Experimentation
 - [ ] T30: Define offline evaluation metrics and slices
