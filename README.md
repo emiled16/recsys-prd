@@ -23,6 +23,7 @@ The first implementation slice now includes backend Python scaffolding plus a ra
 - `docs/dataset-contract.md`: Source dataset contract for H&M entities and image assets.
 - `docs/data-layout.md`: Local storage and dataset layout conventions for raw and derived data.
 - `docs/offline-feature-spec.md`: Offline feature entities, feature views, and source mappings.
+- `docs/online-feature-requirements.md`: Freshness and streaming-input requirements for online features.
 - `plans/plan_v1.1.md`: Current granular implementation plan.
 - `checklists/plan_v1.1_checklist.md`: Current execution checklist.
 
