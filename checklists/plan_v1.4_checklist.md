@@ -32,7 +32,7 @@
 - [x] T29: Register baseline candidate models and metadata
 
 ## Milestone M2: Refactor the Current Backend Into Stable Boundaries
-- [ ] T30: Add `AppSettings` and `PathSettings` objects under a dedicated config module
+- [x] T30: Add `AppSettings` and `PathSettings` objects under a dedicated config module
 - [ ] T31: Replace direct path construction in existing modules with settings-based path resolution
 - [ ] T32: Split the current monolithic CLI into domain command handlers
 - [ ] T33: Introduce shared request and artifact schemas for post-baseline evolution
