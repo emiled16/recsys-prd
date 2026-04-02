@@ -9,6 +9,7 @@ from recsys_prd.events.io import read_jsonl, write_jsonl
 from recsys_prd.io.json_ops import write_json
 from recsys_prd.ranking.training import train_local_ranking_model
 from recsys_prd.schemas.artifacts import ModelRegistrationRecord
+from recsys_prd.services.mlflow_store import MLflowModelRegistrar
 
 
 def register_candidate_ranking_model(
@@ -17,6 +18,7 @@ def register_candidate_ranking_model(
     normalized_root: Path | None = None,
     indexes_root: Path | None = None,
     manifest_path: Path | None = None,
+    mlflow_registrar: MLflowModelRegistrar | None = None,
     settings: AppSettings | None = None,
 ) -> dict[str, Path]:
     """Register the latest trained ranking model as a candidate model version."""
@@ -31,6 +33,16 @@ def register_candidate_ranking_model(
         settings=settings,
     )
     training_manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
+    mlflow_registrar = mlflow_registrar or MLflowModelRegistrar(settings=settings)
+    mlflow_registration = mlflow_registrar.register(
+        model_uri=training_manifest["artifacts"]["model_path"],
+        name=training_manifest["model_name"],
+        tags={
+            "stage": "candidate",
+            "source_run_id": training_manifest["run_id"],
+            "mlflow_run_id": training_manifest.get("mlflow_run_id", ""),
+        },
+    )
 
     registry_dir = models_root / "registry" / training_manifest["model_name"]
     registration_path = registry_dir / training_manifest["run_id"] / "registration.json"
@@ -54,9 +66,11 @@ def register_candidate_ranking_model(
             "training_manifest_path": str(manifest_path),
             "model_artifact_path": training_manifest["artifacts"]["model_path"],
             "metrics_artifact_path": training_manifest["artifacts"]["metrics_path"],
+            "mlflow_run_id": training_manifest.get("mlflow_run_id", ""),
         },
         registration_path=str(registration_path),
     ).model_dump()
+    registration_payload["mlflow_model"] = mlflow_registration
 
     write_json(registration_path, registration_payload)
     write_json(latest_candidate_path, registration_payload)
