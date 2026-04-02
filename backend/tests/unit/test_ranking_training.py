@@ -71,6 +71,13 @@ class FakeRankerBackend:
             }
         )
 
+    def predict(self, feature_matrix: list[list[float]]) -> list[float]:
+        del feature_matrix
+        return [0.9]
+
+    def serialize_model(self) -> bytes:
+        return b"fake-xgboost-model"
+
 
 class RankingTrainingTests(unittest.TestCase):
     def setUp(self) -> None:
@@ -162,6 +169,27 @@ class RankingTrainingTests(unittest.TestCase):
         self.assertEqual(len(backend.fit_calls), 1)
         self.assertEqual(backend.fit_calls[0]["row_count"], len(rows))
         self.assertEqual(sum(backend.fit_calls[0]["group_sizes"]), len(rows))
+
+    def test_xgboost_ranker_training_persists_trainer_specific_artifact(self) -> None:
+        backend = FakeRankerBackend()
+        outputs = train_local_ranking_model(
+            normalized_root=self.normalized_root,
+            indexes_root=self.indexes_root,
+            models_root=self.models_root,
+            trainer=XGBoostRankerTrainer(
+                backend_factory=lambda config, objective: backend,
+            ),
+            mlflow_logger=self.mlflow_logger,
+        )
+
+        model_payload = json.loads(outputs["model"].read_text(encoding="utf-8"))
+        manifest = json.loads(outputs["manifest"].read_text(encoding="utf-8"))
+
+        self.assertEqual(model_payload["model_name"], "ranking_xgboost_ranker")
+        self.assertEqual(model_payload["model_family"], "xgboost_ranker")
+        self.assertIsNone(model_payload["weights"])
+        self.assertTrue(model_payload["backend_payload"])
+        self.assertEqual(manifest["trainer"], "xgboost_ranker")
 
     def _write_raw_fixture(self) -> None:
         articles_dir = self.raw_root / "articles"

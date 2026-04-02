@@ -1,8 +1,11 @@
 from __future__ import annotations
 
+import base64
 import hashlib
 import math
 from dataclasses import asdict, dataclass
+from dataclasses import field as dataclass_field
+from typing import Any
 
 NUMERIC_FEATURE_FIELDS = (
     "candidate_rank",
@@ -69,18 +72,32 @@ class RankingModel:
     model_version: str
     feature_schema: RankingFeatureSchema
     training_config: RankingTrainingConfig
-    weights: list[float]
+    weights: list[float] | None = None
+    model_family: str = "logistic_baseline"
+    backend_payload: str | None = None
+    _predictor: Any | None = dataclass_field(default=None, repr=False, compare=False)
 
     def predict_probability(self, row: dict[str, str]) -> float:
         """Predict purchase probability for a ranking row."""
-        features = vectorize_ranking_row(row, self.feature_schema)
-        return _predict_probability(self.weights, features)
+        sparse_features = vectorize_ranking_row(row, self.feature_schema)
+        if self.model_family == "xgboost_ranker":
+            predictor = self._predictor or _load_xgboost_predictor(self.backend_payload)
+            if self._predictor is None:
+                object.__setattr__(self, "_predictor", predictor)
+            dense_features = _dense_feature_vector(sparse_features, self.feature_schema)
+            raw_score = float(predictor.predict([dense_features])[0])
+            bounded_score = max(min(raw_score, 35.0), -35.0)
+            return 1.0 / (1.0 + math.exp(-bounded_score))
+        if self.weights is None:
+            raise RuntimeError("Linear ranking model is missing weights.")
+        return _predict_probability(self.weights, sparse_features)
 
     def to_dict(self) -> dict[str, object]:
         """Serialize the model artifact into JSON-compatible primitives."""
         return {
             "model_name": self.model_name,
             "model_version": self.model_version,
+            "model_family": self.model_family,
             "feature_schema": {
                 "numeric_fields": list(self.feature_schema.numeric_fields),
                 "categorical_fields": list(self.feature_schema.categorical_fields),
@@ -93,6 +110,7 @@ class RankingModel:
             },
             "training_config": asdict(self.training_config),
             "weights": self.weights,
+            "backend_payload": self.backend_payload,
         }
 
     @classmethod
@@ -121,7 +139,17 @@ class RankingModel:
                 l2_regularization=float(payload["training_config"]["l2_regularization"]),
                 categorical_hash_buckets=int(payload["training_config"]["categorical_hash_buckets"]),
             ),
-            weights=[float(value) for value in payload["weights"]],
+            weights=(
+                [float(value) for value in payload["weights"]]
+                if payload.get("weights") is not None
+                else None
+            ),
+            model_family=str(payload.get("model_family", "logistic_baseline")),
+            backend_payload=(
+                str(payload["backend_payload"])
+                if payload.get("backend_payload") is not None
+                else None
+            ),
         )
 
 
@@ -222,19 +250,19 @@ def build_feature_schema(
 ) -> RankingFeatureSchema:
     """Build the deterministic feature schema used by the ranking baseline."""
     numeric_stats: dict[str, NumericFieldStats] = {}
-    for field in NUMERIC_FEATURE_FIELDS:
+    for field_name in NUMERIC_FEATURE_FIELDS:
         observed_values = [
-            _parse_float(row.get(field, ""))
+            _parse_float(row.get(field_name, ""))
             for row in rows
-            if row.get(field, "") != ""
+            if row.get(field_name, "") != ""
         ]
         if not observed_values:
-            numeric_stats[field] = NumericFieldStats(mean=0.0, std=1.0)
+            numeric_stats[field_name] = NumericFieldStats(mean=0.0, std=1.0)
             continue
         mean = sum(observed_values) / len(observed_values)
         variance = sum((value - mean) ** 2 for value in observed_values) / len(observed_values)
         std = math.sqrt(variance) or 1.0
-        numeric_stats[field] = NumericFieldStats(mean=mean, std=std)
+        numeric_stats[field_name] = NumericFieldStats(mean=mean, std=std)
 
     feature_dimension = 1 + (2 * len(NUMERIC_FEATURE_FIELDS)) + categorical_hash_buckets
     return RankingFeatureSchema(
@@ -254,23 +282,23 @@ def vectorize_ranking_row(
     features: dict[int, float] = {0: 1.0}
     numeric_count = len(feature_schema.numeric_fields)
 
-    for offset, field in enumerate(feature_schema.numeric_fields, start=1):
+    for offset, field_name in enumerate(feature_schema.numeric_fields, start=1):
         missing_index = offset + numeric_count
-        raw_value = row.get(field, "")
+        raw_value = row.get(field_name, "")
         if raw_value == "":
             features[missing_index] = 1.0
             continue
-        stats = feature_schema.numeric_stats[field]
+        stats = feature_schema.numeric_stats[field_name]
         standardized_value = (_parse_float(raw_value) - stats.mean) / stats.std
         if standardized_value != 0.0:
             features[offset] = standardized_value
 
     categorical_start = 1 + (2 * numeric_count)
-    for field in feature_schema.categorical_fields:
-        value = row.get(field, "").strip().lower()
+    for field_name in feature_schema.categorical_fields:
+        value = row.get(field_name, "").strip().lower()
         if not value:
             continue
-        bucket = _stable_bucket(f"{field}={value}", feature_schema.categorical_hash_buckets)
+        bucket = _stable_bucket(f"{field_name}={value}", feature_schema.categorical_hash_buckets)
         index = categorical_start + bucket
         features[index] = features.get(index, 0.0) + 1.0
 
@@ -285,6 +313,41 @@ def _predict_probability(weights: list[float], features: dict[int, float]) -> fl
     linear_score = sum(weights[index] * value for index, value in features.items())
     bounded_score = max(min(linear_score, 35.0), -35.0)
     return 1.0 / (1.0 + math.exp(-bounded_score))
+
+
+def _dense_feature_vector(
+    sparse_features: dict[int, float],
+    feature_schema: RankingFeatureSchema,
+) -> list[float]:
+    vector = [0.0] * feature_schema.feature_dimension
+    for index, value in sparse_features.items():
+        vector[index] = value
+    return vector
+
+
+def _load_xgboost_predictor(encoded_model: str | None):
+    if not encoded_model:
+        raise RuntimeError("XGBoost ranking model is missing a serialized backend.")
+    try:
+        import xgboost
+    except ImportError as exc:  # pragma: no cover - depends on runtime installation.
+        raise RuntimeError("xgboost is required to load the XGBoost ranker.") from exc
+
+    booster = xgboost.Booster()
+    booster.load_model(bytearray(base64.b64decode(encoded_model.encode("ascii"))))
+    return _BoosterPredictor(booster)
+
+
+@dataclass(frozen=True)
+class _BoosterPredictor:
+    booster: Any
+
+    def predict(self, feature_matrix: list[list[float]]) -> list[float]:
+        try:
+            import xgboost
+        except ImportError as exc:  # pragma: no cover - depends on runtime installation.
+            raise RuntimeError("xgboost is required to score the XGBoost ranker.") from exc
+        return [float(value) for value in self.booster.predict(xgboost.DMatrix(feature_matrix))]
 
 
 def _stable_bucket(value: str, bucket_count: int) -> int:

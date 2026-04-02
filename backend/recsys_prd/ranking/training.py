@@ -42,10 +42,13 @@ def train_local_ranking_model(
     rows = read_tabular_rows(dataset_path)
     config = config or RankingTrainingConfig()
     trainer = trainer or LogisticBaselineTrainer()
+    model_name = "ranking_logistic_baseline"
+    if trainer.trainer_name != "logistic_baseline":
+        model_name = f"ranking_{trainer.trainer_name}"
     model, metrics = trainer.train(
         rows,
         config=config,
-        model_name="ranking_logistic_baseline",
+        model_name=model_name,
         model_version="v1",
     )
 
