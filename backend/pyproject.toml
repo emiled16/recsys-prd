@@ -8,16 +8,17 @@ packages = [{ include = "recsys_prd" }]
 
 [tool.poetry.dependencies]
 python = "^3.13"
-pydantic = "^2.12.5"
+pydantic = "2.10.6"
 pydantic-settings = "^2.8.1"
-redis = "^7.4.0"
+redis = "^4.6.0"
 qdrant-client = "^1.17.1"
 mlflow = "^3.10.1"
 fastapi = "^0.135.3"
-uvicorn = "^0.42.0"
+uvicorn = "0.34.0"
 prometheus-client = "^0.24.1"
 confluent-kafka = "^2.13.2"
 xgboost = "^3.2.0"
+feast = {version = "^0.61.0", extras = ["redis"]}
 
 [tool.poetry.group.dev.dependencies]
 pytest = "^8.3.5"
