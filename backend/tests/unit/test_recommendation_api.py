@@ -95,6 +95,16 @@ class RecommendationApiTests(unittest.TestCase):
         self.assertTrue(payload["fallback_used"])
         self.assertIn("timeout_fallback", payload["warnings"])
 
+    def test_metrics_endpoint_exposes_prometheus_payload(self) -> None:
+        client = TestClient(
+            create_app(RecommendationService(retriever=FakeRetriever(), ranker=FakeRanker()))
+        )
+
+        response = client.get("/metrics")
+
+        self.assertEqual(response.status_code, 200)
+        self.assertIn("recsys_api_requests_total", response.text)
+
 
 if __name__ == "__main__":
     unittest.main()

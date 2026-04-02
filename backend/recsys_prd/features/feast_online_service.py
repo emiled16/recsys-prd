@@ -1,10 +1,12 @@
 from __future__ import annotations
 
+from time import perf_counter
 from typing import Any
 
 from feast import FeatureStore
 
 from recsys_prd.config import AppSettings, get_app_settings
+from recsys_prd.observability.metrics import FEATURE_LOOKUP_LATENCY
 
 SESSION_INTENT_FIELDS = (
     "recent_viewed_article_ids",
@@ -55,6 +57,7 @@ class FeastOnlineFeatureService:
         field_names: tuple[str, ...],
         entity_rows: list[dict[str, str]],
     ) -> dict[str, Any]:
+        started_at = perf_counter()
         try:
             store = self.store or FeatureStore(repo_path=str(self.settings.paths.feast_repo_root))
             response = store.get_online_features(
@@ -63,6 +66,11 @@ class FeastOnlineFeatureService:
             )
         except Exception:
             return {}
+        finally:
+            entity_name = feature_view.removesuffix("_features").replace("_realtime", "")
+            FEATURE_LOOKUP_LATENCY.labels(service="feast", entity=entity_name).observe(
+                perf_counter() - started_at
+            )
 
         payload = response.to_dict() if hasattr(response, "to_dict") else dict(response)
         features: dict[str, Any] = {}
