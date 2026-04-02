@@ -74,7 +74,7 @@
 - [x] T59: Implement a `QdrantIndexManager` that creates collections and upserts embedding records
 - [x] T60: Add a command that loads embedding artifacts into Qdrant collections
 - [x] T61: Implement a `QdrantCandidateRetriever` that preserves the current `RetrievalRequest -> RetrievalResult` contract
-- [ ] T62: Update candidate retrieval to enrich requests with Feast and Redis online context
+- [x] T62: Update candidate retrieval to enrich requests with Feast and Redis online context
 
 ## Milestone M8: Replace the File-Backed Model Platform With MLflow and a Library-Backed Ranker
 - [ ] T63: Implement an `MLflowRunLogger` wrapper for params, metrics, tags, and artifact logging
