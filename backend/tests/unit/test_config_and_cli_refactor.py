@@ -67,6 +67,14 @@ class ConfigAndCliRefactorTests(unittest.TestCase):
         self.assertEqual(status, 0)
         mock_loader.assert_called_once()
 
+    def test_retrieval_command_routes_to_offline_evaluator(self) -> None:
+        with patch("recsys_prd.cli.OfflineRetrievalEvaluator") as mock_evaluator:
+            mock_evaluator.return_value.evaluate.return_value = {"report": "/tmp/retrieval.json"}
+            status = main(["evaluate-retrieval"], settings=object())
+
+        self.assertEqual(status, 0)
+        mock_evaluator.return_value.evaluate.assert_called_once()
+
     def test_ranking_command_routes_to_registered_model_evaluation(self) -> None:
         with patch("recsys_prd.cli.evaluate_registered_ranking_model") as mock_evaluate:
             mock_evaluate.return_value = {"evaluation": "/tmp/evaluation.json"}
@@ -74,3 +82,11 @@ class ConfigAndCliRefactorTests(unittest.TestCase):
 
         self.assertEqual(status, 0)
         mock_evaluate.assert_called_once()
+
+    def test_ranking_command_routes_to_offline_quality_evaluator(self) -> None:
+        with patch("recsys_prd.cli.OfflineRankingEvaluator") as mock_evaluator:
+            mock_evaluator.return_value.evaluate.return_value = {"report": "/tmp/ranking.json"}
+            status = main(["evaluate-ranking-quality"], settings=object())
+
+        self.assertEqual(status, 0)
+        mock_evaluator.return_value.evaluate.assert_called_once()
