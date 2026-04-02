@@ -38,6 +38,19 @@ class ConfigAndCliRefactorTests(unittest.TestCase):
         self.assertEqual(status, 0)
         mock_builder.assert_called_once()
 
+    def test_feature_command_routes_to_feast_apply(self) -> None:
+        args = argparse.Namespace(
+            command="apply-feast-repo",
+            materialize_incremental=True,
+            end_date="2026-04-02T00:00:00Z",
+        )
+        with patch("recsys_prd.cli.apply_feast_repo") as mock_apply:
+            mock_apply.return_value = {"repo_path": "/tmp/feast_repo"}
+            status = run_feature_command(args, settings=object())
+
+        self.assertEqual(status, 0)
+        mock_apply.assert_called_once()
+
     def test_main_routes_to_retrieval_handler(self) -> None:
         with patch("recsys_prd.cli.run_retrieval_command", return_value=0) as mock_handler:
             status = main(["build-vector-index"], settings=object())
