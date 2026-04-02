@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import math
 from pathlib import Path
 from typing import Any
 
@@ -57,16 +58,23 @@ class QdrantCandidateRetriever:
             )
 
         collection_name = self.collection_by_index[request.index_name]
-        raw_points = self._search(
-            collection_name=collection_name,
-            query_vector=query_vector,
-            limit=request.limit + len(seed_article_ids),
-        )
-        candidates = [
-            candidate
-            for candidate in self._candidate_records(raw_points)
-            if candidate.article_id not in seed_article_ids
-        ]
+        try:
+            raw_points = self._search(
+                collection_name=collection_name,
+                query_vector=query_vector,
+                limit=request.limit + len(seed_article_ids),
+            )
+            candidates = [
+                candidate
+                for candidate in self._candidate_records(raw_points)
+                if candidate.article_id not in seed_article_ids
+            ]
+        except Exception:
+            candidates = self._local_candidates(
+                index_records=self._load_index(request.index_name),
+                query_vector=query_vector,
+                seed_article_ids=seed_article_ids,
+            )
         return RetrievalResult(
             candidates=tuple(candidates[: request.limit]),
             index_name=request.index_name,
@@ -121,6 +129,32 @@ class QdrantCandidateRetriever:
         if not index_path.exists():
             return []
         return read_jsonl(index_path)
+
+    def _local_candidates(
+        self,
+        *,
+        index_records: list[dict],
+        query_vector: list[float],
+        seed_article_ids: set[str],
+    ) -> list[CandidateRecord]:
+        scored_candidates: list[CandidateRecord] = []
+        for record in index_records:
+            if record["article_id"] in seed_article_ids:
+                continue
+            score = _cosine_similarity(
+                query_vector,
+                record["vector"],
+                record.get("vector_norm", 0.0),
+            )
+            scored_candidates.append(
+                CandidateRecord(
+                    article_id=record["article_id"],
+                    score=round(score, 6),
+                    structured_metadata=record["structured_metadata"],
+                    modality_availability=record["modality_availability"],
+                )
+            )
+        return sorted(scored_candidates, key=lambda item: (-item.score, item.article_id))
 
     def _build_query_vector(
         self,
@@ -205,3 +239,18 @@ def _average_vectors(vectors: list[list[float]]) -> list[float]:
         for index, value in enumerate(vector):
             averaged[index] += value
     return [value / len(vectors) for value in averaged]
+
+
+def _cosine_similarity(
+    query_vector: list[float],
+    item_vector: list[float],
+    item_norm: float,
+) -> float:
+    query_norm = math.sqrt(sum(component * component for component in query_vector))
+    if query_norm == 0.0 or item_norm == 0.0:
+        return 0.0
+    dot = sum(
+        query_component * item_component
+        for query_component, item_component in zip(query_vector, item_vector, strict=True)
+    )
+    return dot / (query_norm * item_norm)
