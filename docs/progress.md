@@ -69,3 +69,5 @@ This is the append-only execution log for the recommendation system project. Eac
 [2026-04-02 01:40:00] [plan v1.4] [DONE] T56: Added pluggable text embedding interfaces, a SentenceTransformerTextEmbedder, and focused unit coverage while preserving optional dependency loading
 [2026-04-02 02:00:00] [plan v1.4] [START] T57: Introduce image embedder abstractions and an OpenCLIP-backed implementation
 [2026-04-02 02:00:00] [plan v1.4] [DONE] T57: Added pluggable image embedding interfaces, an OpenClipImageEmbedder, and focused unit coverage with optional dependency loading
+[2026-04-02 02:12:00] [plan v1.4] [START] T58: Refactor embedding artifact generation to use pluggable embedder implementations
+[2026-04-02 02:12:00] [plan v1.4] [DONE] T58: Refactored build_embedding_artifacts to use injected embedders, preserved deterministic fallback behavior, and added coverage for mixed embedding dimensions

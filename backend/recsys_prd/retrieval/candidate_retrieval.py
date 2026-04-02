@@ -7,7 +7,7 @@ from recsys_prd.config import AppSettings, get_app_settings
 from recsys_prd.events.io import read_jsonl
 from recsys_prd.features.online_service import OnlineFeatureService
 from recsys_prd.retrieval.contracts import CandidateRecord, RetrievalRequest, RetrievalResult
-from recsys_prd.retrieval.embedding_pipeline import EMBEDDING_DIMENSION, hash_embedding_payload
+from recsys_prd.retrieval.embedding_support import EMBEDDING_DIMENSION, hash_embedding_payload
 
 
 class CandidateRetriever:
