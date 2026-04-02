@@ -41,23 +41,23 @@
 - [x] T36: Add refactor-focused tests for settings, schemas, and CLI handler routing
 
 ## Milestone M3: Add the External Services Needed for the Real Stack
-- [ ] T37: Create `docker-compose.yml` with named services for Redpanda, Redis, Qdrant, and MLflow
-- [ ] T38: Add Redpanda service configuration and topic bootstrap script
-- [ ] T39: Add Redis service configuration and a connectivity probe
-- [ ] T40: Add Qdrant service configuration and collection-management probe
-- [ ] T41: Add MLflow tracking server configuration and a run logging probe
+- [x] T37: Create `docker-compose.yml` with named services for Redpanda, Redis, Qdrant, and MLflow
+- [x] T38: Add Redpanda service configuration and topic bootstrap script
+- [x] T39: Add Redis service configuration and a connectivity probe
+- [x] T40: Add Qdrant service configuration and collection-management probe
+- [x] T41: Add MLflow tracking server configuration and a run logging probe
 
 ## Milestone M4: Replace the File-Only Event Publishing Path With Kafka-Compatible Publishing
-- [ ] T42: Implement a `KafkaReplayPublisher` object for sending replay batches to Redpanda
-- [ ] T43: Add a CLI command that publishes replay artifacts into broker topics
-- [ ] T44: Implement broker delivery validation for published replay batches
+- [x] T42: Implement a `KafkaReplayPublisher` object for sending replay batches to Redpanda
+- [x] T43: Add a CLI command that publishes replay artifacts into broker topics
+- [x] T44: Implement broker delivery validation for published replay batches
 
 ## Milestone M5: Replace the File-Backed Online Feature Store With Redis
-- [ ] T45: Implement a `RedisOnlineFeatureStore` object with `put_*` and `get_*` methods for session, customer, and article entities
-- [ ] T46: Refactor `OnlineFeatureService` to read from `RedisOnlineFeatureStore` instead of JSON files
-- [ ] T47: Implement a `FeatureUpdateProcessor` that converts broker events into online feature mutations
-- [ ] T48: Implement a broker consumer that applies feature updates into Redis
-- [ ] T49: Update feature freshness and parity validation to use Redis-backed reads
+- [x] T45: Implement a `RedisOnlineFeatureStore` object with `put_*` and `get_*` methods for session, customer, and article entities
+- [x] T46: Refactor `OnlineFeatureService` to read from `RedisOnlineFeatureStore` instead of JSON files
+- [x] T47: Implement a `FeatureUpdateProcessor` that converts broker events into online feature mutations
+- [x] T48: Implement a broker consumer that applies feature updates into Redis
+- [x] T49: Update feature freshness and parity validation to use Redis-backed reads
 
 ## Milestone M6: Express the Feature Platform in Feast
 - [ ] T50: Create a dedicated Feast repository with `feature_store.yaml`, entity definitions, and source definitions

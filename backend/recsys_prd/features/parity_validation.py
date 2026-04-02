@@ -5,6 +5,7 @@ from pathlib import Path
 
 from recsys_prd.config import AppSettings, get_app_settings
 from recsys_prd.features.online_requirements import online_feature_requirements
+from recsys_prd.features.online_service import OnlineFeatureService
 from recsys_prd.io.json_ops import write_json
 from recsys_prd.io.tabular_ops import read_tabular_rows
 
@@ -24,6 +25,7 @@ def validate_feature_parity_and_freshness(
     features_root: Path | None = None,
     reports_root: Path | None = None,
     settings: AppSettings | None = None,
+    online_feature_service: OnlineFeatureService | None = None,
 ) -> dict:
     """Validate online freshness targets and offline-online feature parity mappings."""
     settings = settings or get_app_settings()
@@ -34,9 +36,18 @@ def validate_feature_parity_and_freshness(
     )
     training_dataset_rows = read_tabular_rows(training_dataset_path)
     online_store_root = features_root / "online_bootstrap"
+    if online_feature_service is None:
+        if online_store_root.exists():
+            online_feature_service = OnlineFeatureService(store_root=online_store_root)
+        else:
+            online_feature_service = OnlineFeatureService(settings=settings)
 
     freshness_checks = _validate_freshness(online_store_root)
-    parity_checks = _validate_parity(training_dataset_rows, online_store_root)
+    parity_checks = _validate_parity(
+        training_dataset_rows,
+        online_store_root,
+        online_feature_service,
+    )
 
     result = {
         "ok": all(check["ok"] for check in freshness_checks.values())
@@ -65,6 +76,7 @@ def _validate_freshness(online_store_root: Path) -> dict[str, dict]:
 def _validate_parity(
     training_dataset_rows: list[dict[str, str]],
     online_store_root: Path,
+    online_feature_service: OnlineFeatureService,
 ) -> dict[str, dict]:
     if not training_dataset_rows:
         return {
@@ -73,17 +85,26 @@ def _validate_parity(
         }
 
     latest_row = training_dataset_rows[-1]
-    customer_payload = _read_json_payload(online_store_root / "customer_realtime_features.json")
-    article_payload = _read_json_payload(online_store_root / "article_realtime_features.json")
-
     return {
         "customer_realtime_features": _compare_feature_pairs(
-            store_payload=customer_payload.get(latest_row["customer_id"], {}),
+            store_payload=online_feature_service.get_customer_realtime_features(
+                customer_id=latest_row["customer_id"]
+            )
+            or _read_json_payload(online_store_root / "customer_realtime_features.json").get(
+                latest_row["customer_id"],
+                {},
+            ),
             training_row=latest_row,
             mappings=OFFLINE_ONLINE_MAPPINGS["customer_realtime_features"],
         ),
         "article_realtime_features": _compare_feature_pairs(
-            store_payload=article_payload.get(latest_row["article_id"], {}),
+            store_payload=online_feature_service.get_article_realtime_features(
+                article_id=latest_row["article_id"]
+            )
+            or _read_json_payload(online_store_root / "article_realtime_features.json").get(
+                latest_row["article_id"],
+                {},
+            ),
             training_row=latest_row,
             mappings=OFFLINE_ONLINE_MAPPINGS["article_realtime_features"],
         ),
