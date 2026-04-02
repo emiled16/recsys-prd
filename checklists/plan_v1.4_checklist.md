@@ -60,7 +60,7 @@
 - [x] T49: Update feature freshness and parity validation to use Redis-backed reads
 
 ## Milestone M6: Express the Feature Platform in Feast
-- [ ] T50: Create a dedicated Feast repository with `feature_store.yaml`, entity definitions, and source definitions
+- [x] T50: Create a dedicated Feast repository with `feature_store.yaml`, entity definitions, and source definitions
 - [ ] T51: Re-express offline feature views from `features.registry()` as Feast feature views
 - [ ] T52: Re-express online feature requirements as Feast online feature views backed by Redis
 - [ ] T53: Add a command to materialize or apply Feast definitions locally
