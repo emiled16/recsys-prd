@@ -37,3 +37,5 @@ This is the append-only execution log for the recommendation system project. Eac
 [2026-04-01 22:41:00] [plan v1.1] [DONE] T15: Added local replay-batch publishing and manifest writing for interaction and catalog topics
 [2026-04-01 22:41:00] [plan v1.1] [START] T16: Validate replayed event quality
 [2026-04-01 22:41:00] [plan v1.1] [DONE] T16: Added replay validation checks and unit coverage for generated event batches
+[2026-04-01 22:52:00] [plan v1.1] [START] T17: Define offline feature entities and views
+[2026-04-01 22:52:00] [plan v1.1] [DONE] T17: Added an offline feature spec plus code-level entity and view registry definitions for future point-in-time feature work
