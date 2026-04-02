@@ -159,3 +159,13 @@
 - Decision: The first candidate retriever builds the query representation from optional query text, optional seed article vectors, and available online session/customer feature tokens.
 - Rationale: This gives the retrieval path a concrete request-context story now and creates a clean seam for later learned query encoders.
 - Consequences: Future retrieval upgrades should be able to replace the query encoder while preserving the high-level request contract and candidate response shape.
+
+## [2026-04-02] D-017: Generate ranking training rows with observed positives plus retrieval negatives
+- Plan: v1.1
+- Context: T27 needs ranking examples that reflect the retrieval stage while preserving leakage-safe feature semantics from T18.
+- Options considered:
+  - Sample negatives independently of retrieval and join features afterward.
+  - Use retrieved candidates as negatives and compute every candidate row from pre-label historical state.
+- Decision: Build ranking datasets with one observed positive row per transaction plus deterministic negatives drawn from the retrieval index, and compute candidate features against history strictly before the label time.
+- Rationale: This keeps training data aligned with the real candidate-generation path while preserving point-in-time correctness for both positives and negatives.
+- Consequences: Future ranking-training work should treat retrieval score and candidate-source metadata as first-class inputs and preserve the same leakage boundary if the retriever changes.

@@ -64,6 +64,12 @@ Build the first point-in-time correct offline training dataset with:
 python3 backend/scripts/ingest_hm_raw.py build-pit-training-set
 ```
 
+Build the first ranking training dataset with observed positives and retrieval negatives with:
+
+```bash
+python3 backend/scripts/ingest_hm_raw.py build-ranking-dataset
+```
+
 Compute local online feature snapshots from replayed events with:
 
 ```bash
