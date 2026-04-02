@@ -48,6 +48,44 @@ class FeastRepoTests(unittest.TestCase):
         self.assertEqual(entities.article.join_key, "article_id")
         self.assertEqual(entities.customer_session.join_key, "customer_session_id")
 
+    def test_offline_views_cover_current_feature_registry_names(self) -> None:
+        from feast_repo.offline_views import offline_feature_views
+
+        views = {view.name: view for view in offline_feature_views()}
+
+        self.assertEqual(
+            set(views.keys()),
+            {
+                "customer_profile_features",
+                "article_catalog_features",
+                "customer_activity_features",
+                "article_demand_features",
+                "customer_article_affinity_features",
+            },
+        )
+        self.assertEqual(
+            {field.name for field in views["customer_profile_features"].schema},
+            {
+                "age",
+                "club_member_status",
+                "fashion_news_frequency",
+                "has_fn_flag",
+                "has_active_flag",
+            },
+        )
+        self.assertEqual(
+            {field.name for field in views["article_catalog_features"].schema},
+            {
+                "product_type_name",
+                "product_group_name",
+                "colour_group_name",
+                "department_name",
+                "index_group_name",
+                "has_detail_desc",
+                "has_image",
+            },
+        )
+
 
 if __name__ == "__main__":
     unittest.main()
