@@ -84,8 +84,8 @@
 - [x] T67: Update ranking evaluation to score MLflow-registered models rather than only local artifacts
 
 ## Milestone M9: Build the Actual Evaluation and Recommendation Serving Paths
-- [ ] T68: Implement an `OfflineRetrievalEvaluator` for Recall@K, MRR, and NDCG on Qdrant-backed candidates
-- [ ] T69: Implement an `OfflineRankingEvaluator` for Precision@K, MAP@K, NDCG@K, and pairwise quality
+- [x] T68: Implement an `OfflineRetrievalEvaluator` for Recall@K, MRR, and NDCG on Qdrant-backed candidates
+- [x] T69: Implement an `OfflineRankingEvaluator` for Precision@K, MAP@K, NDCG@K, and pairwise quality
 - [ ] T70: Add API request and response models for recommendation serving
 - [ ] T71: Implement a `RecommendationService` orchestration object
 - [ ] T72: Expose `RecommendationService` through a FastAPI application

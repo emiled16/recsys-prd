@@ -18,11 +18,13 @@ from recsys_prd.ingestion.hm_raw import ingest_hm_raw
 from recsys_prd.normalization.pipeline import run_hm_normalization
 from recsys_prd.ranking.dataset import build_ranking_dataset
 from recsys_prd.ranking.evaluation import evaluate_registered_ranking_model
+from recsys_prd.ranking.offline_evaluator import OfflineRankingEvaluator
 from recsys_prd.ranking.registry import register_candidate_ranking_model
 from recsys_prd.ranking.training import train_local_ranking_model
 from recsys_prd.retrieval.candidate_retrieval import CandidateRetriever
 from recsys_prd.retrieval.contracts import RetrievalRequest
 from recsys_prd.retrieval.embedding_pipeline import build_embedding_artifacts
+from recsys_prd.retrieval.evaluation import OfflineRetrievalEvaluator
 from recsys_prd.retrieval.vector_index import build_vector_indexes
 from recsys_prd.services.mlflow_store import probe_mlflow_tracking
 from recsys_prd.services.qdrant_store import ensure_qdrant_connection, load_qdrant_indexes
@@ -160,6 +162,10 @@ def build_parser() -> argparse.ArgumentParser:
         help="Evaluate the latest MLflow-registered ranking model against its tracked dataset.",
     )
     subparsers.add_parser(
+        "evaluate-ranking-quality",
+        help="Evaluate offline ranking quality metrics for the latest registered ranking model.",
+    )
+    subparsers.add_parser(
         "probe-mlflow",
         help="Verify MLflow tracking and artifact logging.",
     )
@@ -187,6 +193,10 @@ def build_parser() -> argparse.ArgumentParser:
         type=int,
         default=10,
         help="Maximum number of candidates to return.",
+    )
+    subparsers.add_parser(
+        "evaluate-retrieval",
+        help="Evaluate offline retrieval quality with Recall@K, MRR, and NDCG.",
     )
 
     return parser
@@ -332,6 +342,11 @@ def run_retrieval_command(args: argparse.Namespace, settings: AppSettings) -> in
                 f"department={candidate.structured_metadata.get('department_name', '')}"
             )
         return 0
+    if args.command == "evaluate-retrieval":
+        outputs = OfflineRetrievalEvaluator(settings=settings).evaluate()
+        for name, value in outputs.items():
+            print(f"{name}: {value}")
+        return 0
     return -1
 
 
@@ -354,6 +369,11 @@ def run_ranking_command(args: argparse.Namespace, settings: AppSettings) -> int:
         return 0
     if args.command == "evaluate-ranking-model":
         outputs = evaluate_registered_ranking_model(settings=settings)
+        for name, value in outputs.items():
+            print(f"{name}: {value}")
+        return 0
+    if args.command == "evaluate-ranking-quality":
+        outputs = OfflineRankingEvaluator(settings=settings).evaluate()
         for name, value in outputs.items():
             print(f"{name}: {value}")
         return 0
