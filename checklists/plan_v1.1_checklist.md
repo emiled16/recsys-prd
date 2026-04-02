@@ -28,7 +28,7 @@
 - [x] T19: Define online feature requirements
 - [x] T20: Build streaming feature computation
 - [x] T21: Expose online feature serving
-- [ ] T22: Validate feature parity and freshness
+- [x] T22: Validate feature parity and freshness
 
 ## Milestone M5: Retrieval and Ranking
 - [ ] T23: Define multimodal representation strategy
