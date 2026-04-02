@@ -86,11 +86,11 @@
 ## Milestone M9: Build the Actual Evaluation and Recommendation Serving Paths
 - [x] T68: Implement an `OfflineRetrievalEvaluator` for Recall@K, MRR, and NDCG on Qdrant-backed candidates
 - [x] T69: Implement an `OfflineRankingEvaluator` for Precision@K, MAP@K, NDCG@K, and pairwise quality
-- [ ] T70: Add API request and response models for recommendation serving
-- [ ] T71: Implement a `RecommendationService` orchestration object
-- [ ] T72: Expose `RecommendationService` through a FastAPI application
-- [ ] T73: Add timeout, fallback, and validation behavior to the API path
-- [ ] T74: Implement an `ExperimentAssigner` and `ExposureLogger` for online experimentation
+- [x] T70: Add API request and response models for recommendation serving
+- [x] T71: Implement a `RecommendationService` orchestration object
+- [x] T72: Expose `RecommendationService` through a FastAPI application
+- [x] T73: Add timeout, fallback, and validation behavior to the API path
+- [x] T74: Implement an `ExperimentAssigner` and `ExposureLogger` for online experimentation
 
 ## Milestone M10: Add Observability, Orchestration, and Final Documentation
 - [ ] T75: Instrument API, retrieval, ranking, and feature flows with Prometheus metrics
