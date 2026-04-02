@@ -80,7 +80,7 @@
 - [x] T63: Implement an `MLflowRunLogger` wrapper for params, metrics, tags, and artifact logging
 - [x] T64: Refactor `train_local_ranking_model()` to log training results through `MLflowRunLogger`
 - [x] T65: Implement an `MLflowModelRegistrar` that registers trained ranking models into the MLflow Model Registry
-- [ ] T66: Add a `LightGBMRankerTrainer` or `XGBoostRankerTrainer` implementation behind a ranking trainer abstraction
+- [x] T66: Add a `LightGBMRankerTrainer` or `XGBoostRankerTrainer` implementation behind a ranking trainer abstraction
 - [ ] T67: Update ranking evaluation to score MLflow-registered models rather than only local artifacts
 
 ## Milestone M9: Build the Actual Evaluation and Recommendation Serving Paths

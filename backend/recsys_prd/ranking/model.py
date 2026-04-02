@@ -4,7 +4,6 @@ import hashlib
 import math
 from dataclasses import asdict, dataclass
 
-
 NUMERIC_FEATURE_FIELDS = (
     "candidate_rank",
     "candidate_score",
@@ -135,7 +134,10 @@ def train_ranking_model(
 ) -> tuple[RankingModel, dict[str, float]]:
     """Train a deterministic linear ranking baseline from ranking rows."""
     config = config or RankingTrainingConfig()
-    feature_schema = build_feature_schema(rows, categorical_hash_buckets=config.categorical_hash_buckets)
+    feature_schema = build_feature_schema(
+        rows,
+        categorical_hash_buckets=config.categorical_hash_buckets,
+    )
     training_examples = [
         (vectorize_ranking_row(row, feature_schema), int(row["label_purchase"]))
         for row in rows
@@ -186,7 +188,10 @@ def evaluate_ranking_model(model: RankingModel, rows: list[dict[str, str]]) -> d
         label = int(row["label_purchase"])
         clipped_probability = min(max(probability, 1e-9), 1 - 1e-9)
         losses.append(
-            -(label * math.log(clipped_probability) + (1 - label) * math.log(1 - clipped_probability))
+            -(
+                label * math.log(clipped_probability)
+                + (1 - label) * math.log(1 - clipped_probability)
+            )
         )
         correct += int((probability >= 0.5) == bool(label))
         predictions.append((row, probability))
@@ -218,7 +223,11 @@ def build_feature_schema(
     """Build the deterministic feature schema used by the ranking baseline."""
     numeric_stats: dict[str, NumericFieldStats] = {}
     for field in NUMERIC_FEATURE_FIELDS:
-        observed_values = [_parse_float(row.get(field, "")) for row in rows if row.get(field, "") != ""]
+        observed_values = [
+            _parse_float(row.get(field, ""))
+            for row in rows
+            if row.get(field, "") != ""
+        ]
         if not observed_values:
             numeric_stats[field] = NumericFieldStats(mean=0.0, std=1.0)
             continue

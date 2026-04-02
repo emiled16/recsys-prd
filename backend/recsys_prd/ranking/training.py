@@ -9,7 +9,8 @@ from recsys_prd.events.io import read_jsonl, write_jsonl
 from recsys_prd.io.json_ops import write_json
 from recsys_prd.io.tabular_ops import read_tabular_rows
 from recsys_prd.ranking.dataset import build_ranking_dataset
-from recsys_prd.ranking.model import RankingModel, RankingTrainingConfig, train_ranking_model
+from recsys_prd.ranking.model import RankingModel, RankingTrainingConfig
+from recsys_prd.ranking.trainers import LogisticBaselineTrainer, RankingTrainer
 from recsys_prd.services.mlflow_store import MLflowRunLogger
 
 
@@ -19,6 +20,7 @@ def train_local_ranking_model(
     indexes_root: Path | None = None,
     models_root: Path | None = None,
     config: RankingTrainingConfig | None = None,
+    trainer: RankingTrainer | None = None,
     mlflow_logger: MLflowRunLogger | None = None,
     settings: AppSettings | None = None,
 ) -> dict[str, Path | str]:
@@ -39,7 +41,13 @@ def train_local_ranking_model(
 
     rows = read_tabular_rows(dataset_path)
     config = config or RankingTrainingConfig()
-    model, metrics = train_ranking_model(rows, config=config)
+    trainer = trainer or LogisticBaselineTrainer()
+    model, metrics = trainer.train(
+        rows,
+        config=config,
+        model_name="ranking_logistic_baseline",
+        model_version="v1",
+    )
 
     run_id = datetime.now(timezone.utc).strftime("%Y%m%dT%H%M%SZ")
     run_dir = models_root / "artifacts" / model.model_name / run_id
@@ -76,7 +84,7 @@ def train_local_ranking_model(
         tags={
             "model_name": model.model_name,
             "model_version": model.model_version,
-            "trainer": "logistic_baseline",
+            "trainer": trainer.trainer_name,
         },
         artifact_paths=[model_path, metrics_path],
     )
@@ -87,6 +95,7 @@ def train_local_ranking_model(
         "trained_at_utc": datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ"),
         "model_name": model.model_name,
         "model_version": model.model_version,
+        "trainer": trainer.trainer_name,
         "dataset": {
             "path": str(dataset_path),
             "row_count": len(rows),
@@ -131,6 +140,7 @@ def _append_run_log(path: Path, manifest_payload: dict[str, object]) -> None:
             "trained_at_utc": manifest_payload["trained_at_utc"],
             "model_name": manifest_payload["model_name"],
             "model_version": manifest_payload["model_version"],
+            "trainer": manifest_payload["trainer"],
             "dataset_path": manifest_payload["dataset"]["path"],
             "row_count": manifest_payload["dataset"]["row_count"],
             "positive_row_count": manifest_payload["dataset"]["positive_row_count"],
