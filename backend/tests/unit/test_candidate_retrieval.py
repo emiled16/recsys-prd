@@ -43,6 +43,16 @@ class FakeQdrantClient:
         ][:limit]
 
 
+class FakeFeastOnlineFeatureService:
+    def get_session_intent_features(self, *, customer_id: str, session_id: str) -> dict[str, str]:
+        del customer_id, session_id
+        return {"recent_search_terms": "linen dress"}
+
+    def get_customer_realtime_features(self, *, customer_id: str) -> dict[str, int]:
+        del customer_id
+        return {"purchase_count_7d_rt": 3}
+
+
 class CandidateRetrievalTests(unittest.TestCase):
     def setUp(self) -> None:
         self.tmp_dir = tempfile.TemporaryDirectory()
@@ -68,6 +78,7 @@ class CandidateRetrievalTests(unittest.TestCase):
         self.retriever = CandidateRetriever(
             indexes_root=self.indexes_root,
             online_feature_service=OnlineFeatureService(self.store_root),
+            feast_online_feature_service=FakeFeastOnlineFeatureService(),
             client=FakeQdrantClient(),
         )
 
@@ -90,6 +101,8 @@ class CandidateRetrievalTests(unittest.TestCase):
         self.assertEqual(result.candidates[0].article_id, "108775015")
         self.assertTrue(any(token.startswith("session:") for token in result.context_tokens))
         self.assertTrue(any(token.startswith("customer:") for token in result.context_tokens))
+        self.assertIn("session:recent_search_terms=linen dress", result.context_tokens)
+        self.assertIn("customer:purchase_count_7d_rt=3", result.context_tokens)
 
     def test_excludes_seed_articles_from_results(self) -> None:
         result = self.retriever.retrieve(

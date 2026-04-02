@@ -7,6 +7,7 @@ from qdrant_client import QdrantClient
 
 from recsys_prd.config import AppSettings, get_app_settings
 from recsys_prd.events.io import read_jsonl
+from recsys_prd.features.feast_online_service import FeastOnlineFeatureService
 from recsys_prd.features.online_service import OnlineFeatureService
 from recsys_prd.retrieval.contracts import CandidateRecord, RetrievalRequest, RetrievalResult
 from recsys_prd.retrieval.embedding_support import EMBEDDING_DIMENSION, hash_embedding_payload
@@ -19,6 +20,7 @@ class QdrantCandidateRetriever:
         self,
         indexes_root: Path | None = None,
         online_feature_service: OnlineFeatureService | None = None,
+        feast_online_feature_service: FeastOnlineFeatureService | None = None,
         settings: AppSettings | None = None,
         client: Any | None = None,
     ) -> None:
@@ -26,6 +28,9 @@ class QdrantCandidateRetriever:
         self.indexes_root = indexes_root or self.settings.paths.indexes_root
         self.online_feature_service = online_feature_service or OnlineFeatureService(
             settings=self.settings
+        )
+        self.feast_online_feature_service = feast_online_feature_service or (
+            FeastOnlineFeatureService(settings=self.settings)
         )
         self.client = client or QdrantClient(
             host=self.settings.services.qdrant.host,
@@ -153,17 +158,30 @@ class QdrantCandidateRetriever:
     def _context_tokens(self, request: RetrievalRequest) -> list[str]:
         tokens: list[str] = []
         if request.customer_id and request.session_id:
-            session_payload = self.online_feature_service.get_session_intent_features(
-                customer_id=request.customer_id,
-                session_id=request.session_id,
+            session_payloads = (
+                self.online_feature_service.get_session_intent_features(
+                    customer_id=request.customer_id,
+                    session_id=request.session_id,
+                ),
+                self.feast_online_feature_service.get_session_intent_features(
+                    customer_id=request.customer_id,
+                    session_id=request.session_id,
+                ),
             )
-            tokens.extend(_payload_tokens("session", session_payload))
+            for payload in session_payloads:
+                tokens.extend(_payload_tokens("session", payload))
         if request.customer_id:
-            customer_payload = self.online_feature_service.get_customer_realtime_features(
-                customer_id=request.customer_id,
+            customer_payloads = (
+                self.online_feature_service.get_customer_realtime_features(
+                    customer_id=request.customer_id,
+                ),
+                self.feast_online_feature_service.get_customer_realtime_features(
+                    customer_id=request.customer_id,
+                ),
             )
-            tokens.extend(_payload_tokens("customer", customer_payload))
-        return tokens
+            for payload in customer_payloads:
+                tokens.extend(_payload_tokens("customer", payload))
+        return list(dict.fromkeys(tokens))
 
 
 class CandidateRetriever(QdrantCandidateRetriever):

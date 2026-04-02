@@ -77,3 +77,5 @@ This is the append-only execution log for the recommendation system project. Eac
 [2026-04-02 02:34:00] [plan v1.4] [DONE] T60: Added build-qdrant-index CLI routing with regression coverage for the new Qdrant loading path
 [2026-04-02 02:44:00] [plan v1.4] [START] T61: Implement a Qdrant-backed candidate retriever while preserving the existing retrieval contract
 [2026-04-02 02:44:00] [plan v1.4] [DONE] T61: Replaced the local index search path with a Qdrant-backed retriever and added fake-client regression coverage for ranking, seed exclusion, and context propagation
+[2026-04-02 02:52:00] [plan v1.4] [START] T62: Enrich retrieval request context with Feast and Redis online features
+[2026-04-02 02:52:00] [plan v1.4] [DONE] T62: Added a Feast online feature service and updated retrieval context hydration to combine Feast and Redis request signals
