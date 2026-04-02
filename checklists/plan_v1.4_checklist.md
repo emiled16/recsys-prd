@@ -78,7 +78,7 @@
 
 ## Milestone M8: Replace the File-Backed Model Platform With MLflow and a Library-Backed Ranker
 - [x] T63: Implement an `MLflowRunLogger` wrapper for params, metrics, tags, and artifact logging
-- [ ] T64: Refactor `train_local_ranking_model()` to log training results through `MLflowRunLogger`
+- [x] T64: Refactor `train_local_ranking_model()` to log training results through `MLflowRunLogger`
 - [ ] T65: Implement an `MLflowModelRegistrar` that registers trained ranking models into the MLflow Model Registry
 - [ ] T66: Add a `LightGBMRankerTrainer` or `XGBoostRankerTrainer` implementation behind a ranking trainer abstraction
 - [ ] T67: Update ranking evaluation to score MLflow-registered models rather than only local artifacts

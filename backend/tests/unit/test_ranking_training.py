@@ -14,6 +14,40 @@ from recsys_prd.ranking.dataset import build_ranking_dataset
 from recsys_prd.ranking.training import load_ranking_model, train_local_ranking_model
 from recsys_prd.retrieval.embedding_pipeline import build_embedding_artifacts
 from recsys_prd.retrieval.vector_index import build_vector_indexes
+from recsys_prd.services.mlflow_store import MLflowRunLogger
+
+
+class FakeRunInfo:
+    def __init__(self, run_id: str) -> None:
+        self.run_id = run_id
+
+
+class FakeRun:
+    def __init__(self, run_id: str) -> None:
+        self.info = FakeRunInfo(run_id)
+
+
+class FakeMlflowClient:
+    def __init__(self) -> None:
+        self.params: dict[str, object] = {}
+        self.metrics: dict[str, float] = {}
+        self.artifacts: list[str] = []
+
+    def create_run(self, experiment_id: str, tags: dict[str, str]) -> FakeRun:
+        del experiment_id, tags
+        return FakeRun("run-123")
+
+    def log_param(self, run_id: str, key: str, value: object) -> None:
+        del run_id
+        self.params[key] = value
+
+    def log_metric(self, run_id: str, key: str, value: float) -> None:
+        del run_id
+        self.metrics[key] = value
+
+    def log_artifact(self, run_id: str, path: str) -> None:
+        del run_id
+        self.artifacts.append(path)
 
 
 class RankingTrainingTests(unittest.TestCase):
@@ -42,6 +76,8 @@ class RankingTrainingTests(unittest.TestCase):
             negative_sample_count=2,
             max_seed_articles=2,
         )
+        self.mlflow_client = FakeMlflowClient()
+        self.mlflow_logger = MLflowRunLogger(client=self.mlflow_client)
 
     def tearDown(self) -> None:
         shutil.rmtree(self.root, ignore_errors=True)
@@ -52,6 +88,7 @@ class RankingTrainingTests(unittest.TestCase):
             normalized_root=self.normalized_root,
             indexes_root=self.indexes_root,
             models_root=self.models_root,
+            mlflow_logger=self.mlflow_logger,
         )
 
         model = load_ranking_model(outputs["model"])
@@ -61,11 +98,15 @@ class RankingTrainingTests(unittest.TestCase):
         rows = read_tabular_rows(self.dataset_path)
 
         self.assertEqual(manifest["dataset"]["path"], str(self.dataset_path))
+        self.assertEqual(manifest["mlflow_run_id"], "run-123")
         self.assertEqual(len(run_log), 1)
         self.assertEqual(run_log[0]["run_id"], manifest["run_id"])
+        self.assertEqual(run_log[0]["mlflow_run_id"], "run-123")
         self.assertEqual(metrics["row_count"], float(len(rows)))
         self.assertGreater(metrics["mean_positive_score"], metrics["mean_negative_score"])
         self.assertGreaterEqual(metrics["pairwise_accuracy"], 0.66)
+        self.assertIn("training_config.epochs", self.mlflow_client.params)
+        self.assertIn(str(outputs["model"]), self.mlflow_client.artifacts)
 
         positive_row = next(
             row
