@@ -32,9 +32,9 @@
 
 ## Milestone M5: Retrieval and Ranking
 - [x] T23: Define multimodal representation strategy
-- [ ] T24: Build embedding generation pipeline
-- [ ] T25: Build vector indexing pipeline
-- [ ] T26: Implement candidate retrieval logic
+- [x] T24: Build embedding generation pipeline
+- [x] T25: Build vector indexing pipeline
+- [x] T26: Implement candidate retrieval logic
 - [ ] T27: Build ranking dataset generation
 - [ ] T28: Implement ranking model training
 - [ ] T29: Register candidate models and metadata

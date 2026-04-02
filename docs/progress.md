@@ -52,3 +52,9 @@ This is the append-only execution log for the recommendation system project. Eac
 [2026-04-01 23:47:00] [plan v1.1] [START] T23: Define multimodal representation strategy
 [2026-04-01 23:47:00] [plan v1.1] [DONE] T23: Added a multimodal retrieval strategy document plus code-level modality and fusion strategy definitions
 [2026-04-01 22:55:10] [extra request] [DONE] Outside plan: pinned backend Python to 3.13.0 in `.python-version` and rebuilt `backend/.venv` with the local Python 3.13 interpreter
+[2026-04-01 23:01:58] [plan v1.1] [START] T24: Build embedding generation pipeline
+[2026-04-01 23:04:33] [plan v1.1] [DONE] T24: Added deterministic text, image, and fused embedding generation with JSONL artifacts, manifests, CLI support, and unit coverage
+[2026-04-01 23:05:21] [plan v1.1] [START] T25: Build vector indexing pipeline
+[2026-04-01 23:07:16] [plan v1.1] [START] T26: Implement candidate retrieval logic
+[2026-04-01 23:09:44] [plan v1.1] [DONE] T25: Added rebuildable text and fused vector index artifacts with manifests, CLI support, and unit coverage
+[2026-04-01 23:09:44] [plan v1.1] [DONE] T26: Added local candidate retrieval over the vector index with query text, seed-item, and online-context support plus unit coverage

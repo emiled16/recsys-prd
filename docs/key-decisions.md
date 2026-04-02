@@ -129,3 +129,33 @@
 - Decision: Use a staged strategy: text-first retrieval baseline first, then late-fusion multimodal retrieval while preserving unimodal artifacts.
 - Rationale: This keeps the early pipeline simpler to debug and preserves fallback behavior when image coverage is incomplete.
 - Consequences: T24 should generate unimodal embeddings separately and treat fused embeddings as an additional derived artifact rather than the only representation.
+
+## [2026-04-01] D-014: Use deterministic hash-based local embeddings before introducing external model dependencies
+- Plan: v1.1
+- Context: T24 needs reusable embedding artifacts now, but the backend does not yet include model-serving dependencies or pretrained encoder weights.
+- Options considered:
+  - Add real embedding-model dependencies immediately.
+  - Emit deterministic local embeddings from normalized text and image-manifest inputs first.
+- Decision: Build the first embedding pipeline with deterministic hash-based encoders that generate text, image, and fused JSONL artifacts plus manifests.
+- Rationale: This keeps the retrieval pipeline reproducible and testable, preserves the artifact boundaries needed for T25, and avoids premature dependency weight before the indexing and serving slices exist.
+- Consequences: Later model-backed encoders should preserve the same artifact contract where practical so indexing and retrieval callers can evolve without a full pipeline rewrite.
+
+## [2026-04-01] D-015: Use file-backed JSONL vector indexes before adding a vector database
+- Plan: v1.1
+- Context: T25 needs a rebuildable local index that T26 can query, but the project has not yet introduced Qdrant or Milvus into the runtime.
+- Options considered:
+  - Block indexing on an external vector database.
+  - Materialize local index records from embedding artifacts first.
+- Decision: Build text and fused vector indexes as JSONL records plus a manifest under `data/indexes/`.
+- Rationale: This keeps index state inspectable, reproducible, and easy to rebuild while preserving the source-of-truth boundary at the embedding layer.
+- Consequences: Later vector-database integration should consume the same embedding artifacts and preserve the logical collection boundaries for text and fused retrieval.
+
+## [2026-04-01] D-016: Build retrieval queries from free text, seed items, and online-context tokens
+- Plan: v1.1
+- Context: T26 depends on both the vector index and the online feature-serving layer, but the project does not yet have learned user/query encoders.
+- Options considered:
+  - Restrict retrieval to text-only queries until learned encoders exist.
+  - Combine hashed free-text payloads, seed-item vectors, and serialized online-feature context into one local query representation.
+- Decision: The first candidate retriever builds the query representation from optional query text, optional seed article vectors, and available online session/customer feature tokens.
+- Rationale: This gives the retrieval path a concrete request-context story now and creates a clean seam for later learned query encoders.
+- Consequences: Future retrieval upgrades should be able to replace the query encoder while preserving the high-level request contract and candidate response shape.

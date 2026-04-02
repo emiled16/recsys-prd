@@ -21,3 +21,9 @@ def load_image_presence(normalized_root: Path) -> dict[str, bool]:
     """Load image-manifest presence keyed by article_id."""
     rows = read_csv_rows(normalized_root / "images" / "product_images_manifest.csv")
     return {row["article_id"]: True for row in rows}
+
+
+def load_image_manifest(normalized_root: Path) -> dict[str, dict[str, str]]:
+    """Load image-manifest rows keyed by article_id."""
+    rows = read_csv_rows(normalized_root / "images" / "product_images_manifest.csv")
+    return {row["article_id"]: row for row in rows}
