@@ -6,6 +6,7 @@ from pathlib import Path
 from recsys_prd.events.replay import publish_local_replay
 from recsys_prd.events.validation import validate_local_replay
 from recsys_prd.ingestion.hm_raw import ingest_hm_raw
+from recsys_prd.features.online_service import OnlineFeatureService
 from recsys_prd.features.streaming_features import compute_online_feature_store
 from recsys_prd.features.training_dataset import build_point_in_time_training_dataset
 from recsys_prd.normalization.pipeline import run_hm_normalization
@@ -55,6 +56,19 @@ def build_parser() -> argparse.ArgumentParser:
         "compute-online-features",
         help="Compute local online feature snapshots from replayed events.",
     )
+    get_online_parser = subparsers.add_parser(
+        "get-online-features",
+        help="Fetch one online feature payload from the local serving store.",
+    )
+    get_online_parser.add_argument(
+        "--entity",
+        choices=["session", "customer", "article"],
+        required=True,
+        help="Online entity type to fetch.",
+    )
+    get_online_parser.add_argument("--customer-id", help="Customer identifier.")
+    get_online_parser.add_argument("--session-id", help="Session identifier.")
+    get_online_parser.add_argument("--article-id", help="Article identifier.")
 
     return parser
 
@@ -102,6 +116,22 @@ def main() -> int:
         outputs = compute_online_feature_store()
         for name, path in outputs.items():
             print(f"{name}: {path}")
+        return 0
+
+    if args.command == "get-online-features":
+        service = OnlineFeatureService()
+        if args.entity == "session":
+            print(
+                service.get_session_intent_features(
+                    customer_id=args.customer_id or "",
+                    session_id=args.session_id or "",
+                )
+            )
+            return 0
+        if args.entity == "customer":
+            print(service.get_customer_realtime_features(customer_id=args.customer_id or ""))
+            return 0
+        print(service.get_article_realtime_features(article_id=args.article_id or ""))
         return 0
 
     parser.error(f"Unsupported command: {args.command}")

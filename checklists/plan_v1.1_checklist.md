@@ -27,7 +27,7 @@
 - [x] T18: Build point-in-time correct training joins
 - [x] T19: Define online feature requirements
 - [x] T20: Build streaming feature computation
-- [ ] T21: Expose online feature serving
+- [x] T21: Expose online feature serving
 - [ ] T22: Validate feature parity and freshness
 
 ## Milestone M5: Retrieval and Ranking

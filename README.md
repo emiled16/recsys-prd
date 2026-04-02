@@ -69,6 +69,12 @@ Compute local online feature snapshots from replayed events with:
 python3 backend/scripts/ingest_hm_raw.py compute-online-features
 ```
 
+Read one payload back from the local online feature store with:
+
+```bash
+python3 backend/scripts/ingest_hm_raw.py get-online-features --entity customer --customer-id 0001
+```
+
 ## Planned System Capabilities
 
 - Historical dataset ingestion and normalization
