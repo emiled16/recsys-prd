@@ -70,6 +70,12 @@ Build the first ranking training dataset with observed positives and retrieval n
 python3 backend/scripts/ingest_hm_raw.py build-ranking-dataset
 ```
 
+Train the first local ranking baseline and write tracked model artifacts with:
+
+```bash
+python3 backend/scripts/ingest_hm_raw.py train-ranking-model
+```
+
 Compute local online feature snapshots from replayed events with:
 
 ```bash
