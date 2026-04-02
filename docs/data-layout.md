@@ -1,0 +1,147 @@
+# Local Data Layout Conventions
+
+## Purpose
+This document defines how local datasets and derived artifacts are organized so ingestion, normalization, feature generation, model training, and serving all read from predictable locations.
+
+The structure is designed for local development with backend services running outside containers while shared infrastructure remains compatible with `docker-compose`.
+
+## Root Layout
+All project-managed data should live under a single top-level `data/` directory that is ignored by Git except for placeholder files and lightweight manifests.
+
+Planned layout:
+
+```text
+data/
+  raw/
+    hm/
+      customers/
+      articles/
+      transactions/
+      images/
+      manifests/
+  normalized/
+    customers/
+    products/
+    transactions/
+    images/
+  features/
+    offline/
+    online_bootstrap/
+  events/
+    seeds/
+    replay_batches/
+    dead_letter/
+  embeddings/
+    text/
+    image/
+    fused/
+  indexes/
+    qdrant/
+  models/
+    training_sets/
+    registry/
+  reports/
+    data_quality/
+    evaluation/
+```
+
+## Layer Conventions
+
+### `data/raw/`
+Purpose:
+- Immutable landing zone for source files and unpacked dataset assets.
+
+Rules:
+- Do not edit files in place after ingestion.
+- Preserve original file names when possible.
+- Store manifests and ingestion receipts alongside the raw assets.
+- Keep raw images under `data/raw/hm/images/` and avoid mixing them with derived thumbnails or embeddings.
+
+### `data/normalized/`
+Purpose:
+- Cleaned, schema-stable datasets used by features, replay, and model pipelines.
+
+Rules:
+- Outputs are replaceable by rerunning normalization.
+- One entity per subdirectory.
+- Partition by processing date only when it materially improves downstream jobs; avoid unnecessary partitioning early.
+- Publish dataset metadata files such as row counts or schema snapshots next to each normalized output.
+
+### `data/features/`
+Purpose:
+- Offline feature tables and any local bootstrap snapshots needed to seed online stores.
+
+Rules:
+- Separate offline training features from online bootstrap exports.
+- Point-in-time training extracts should be versioned by run timestamp or run ID.
+- Do not co-locate raw event logs with feature outputs.
+
+### `data/events/`
+Purpose:
+- Deterministic seeds, replay batches, and failure captures for synthetic streaming.
+
+Rules:
+- Replay inputs must be reproducible from a known seed or source snapshot.
+- Dead-letter outputs must be isolated from clean replay batches.
+- Generated event bundles should include metadata about source date range and replay configuration.
+
+### `data/embeddings/`
+Purpose:
+- Persisted embedding vectors and related metadata used for retrieval and ranking.
+
+Rules:
+- Keep text, image, and fused representations in separate directories.
+- Store vector metadata with model name, version, and generation timestamp.
+- Treat embeddings as reproducible derivatives; they can be rebuilt from normalized products and images.
+
+### `data/indexes/`
+Purpose:
+- Local vector index state and rebuild artifacts.
+
+Rules:
+- The index directory may be wiped and rebuilt during development.
+- Never treat index state as the source of truth for embeddings.
+
+### `data/models/`
+Purpose:
+- Training datasets, model artifacts, and lightweight local registry exports.
+
+Rules:
+- Distinguish between ephemeral training inputs and promoted model artifacts.
+- Keep experiment metadata separate from the model binary or checkpoint files where practical.
+
+### `data/reports/`
+Purpose:
+- Human-readable outputs from validation and evaluation jobs.
+
+Rules:
+- Store quality and evaluation reports as reproducible artifacts, not hand-edited documents.
+- Timestamp report outputs when multiple runs are retained.
+
+## Naming Rules
+- Use lowercase snake_case for directories and file stems.
+- Prefer explicit entity names such as `products_normalized.parquet` over ambiguous names like `output.parquet`.
+- Include run timestamps in UTC for run-scoped artifacts using `YYYYMMDDTHHMMSSZ`.
+- Keep format-specific suffixes accurate, for example `.csv`, `.parquet`, `.json`, `.jsonl`.
+
+## Format Rules
+- Raw tabular ingests may remain in their source formats.
+- Normalized tabular outputs should default to Parquet unless a downstream tool requires another format.
+- Event payload batches should default to JSON Lines.
+- Metadata and manifests should use JSON or YAML, with JSON preferred for machine-generated files.
+
+## Environment and Configuration Rules
+- Local code should refer to the `data/` root through configuration, not hard-coded absolute paths.
+- Containerized infrastructure must mount only the subdirectories it needs.
+- Frontend code, if introduced later, should access data through backend APIs rather than reading files directly.
+
+## Operational Guardrails
+- Raw data is append-only unless a full re-ingestion is explicitly run.
+- Derived layers are reproducible and may be replaced.
+- Large transient artifacts should remain out of Git.
+- Every pipeline stage should have a single documented read layer and write layer.
+
+## Acceptance Criteria
+- The project has a stable, documented local data directory structure.
+- The layout cleanly separates raw, normalized, feature, event, embedding, index, model, and report artifacts.
+- The conventions are specific enough to guide implementation of tasks `T7` through `T25`.

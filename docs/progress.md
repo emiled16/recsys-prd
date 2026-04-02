@@ -9,3 +9,31 @@ This is the append-only execution log for the recommendation system project. Eac
 [2026-04-01 18:15:06] [plan v1.0] [DONE] T2: Created plan v1.0 and matching checklist for end-to-end implementation
 [2026-04-01 21:23:01] [plan v1.0] [START] T1: Create a contract-style project charter covering context, objectives, deliverables, and expectations
 [2026-04-01 21:23:01] [plan v1.0] [DONE] T1: Added project charter document summarizing the engagement scope and acceptance criteria
+
+---
+## Plan v1.1
+[2026-04-01 21:59:26] [plan v1.1] [START] T5: Define the H&M source dataset contract for customers, products, transactions, and images
+[2026-04-01 21:59:26] [plan v1.1] [DONE] T5: Added a source dataset contract document with schemas, keys, required fields, and quality rules
+[2026-04-01 21:59:26] [plan v1.1] [START] T6: Define local storage and dataset layout conventions for raw and derived assets
+[2026-04-01 21:59:26] [plan v1.1] [DONE] T6: Added local data layout conventions for raw, normalized, feature, event, embedding, index, model, and report layers
+[2026-04-01 22:03:00] [plan v1.1] [START] T7: Build reproducible raw H&M dataset ingestion into the local data layout
+[2026-04-01 22:03:00] [plan v1.1] [DONE] T7: Added Python project scaffolding, a raw-ingestion CLI, and unit coverage for zip and directory ingestion flows
+[2026-04-01 22:12:00] [plan v1.1] [CORRECTION] T7: Moved Python code under backend/ and split ingestion logic into smaller focused modules to align with backend/frontend repo boundaries and Python module guidelines
+[2026-04-01 22:28:00] [plan v1.1] [START] T8: Build product normalization and image-manifest generation from ingested raw data
+[2026-04-01 22:28:00] [plan v1.1] [DONE] T8: Added product normalization, image manifest generation, and output metadata writing
+[2026-04-01 22:28:00] [plan v1.1] [START] T9: Build customer normalization from ingested raw data
+[2026-04-01 22:28:00] [plan v1.1] [DONE] T9: Added customer normalization and output metadata writing
+[2026-04-01 22:28:00] [plan v1.1] [START] T10: Build transaction normalization with deterministic event identifiers
+[2026-04-01 22:28:00] [plan v1.1] [DONE] T10: Added transaction normalization with normalized event timestamps and deterministic event IDs
+[2026-04-01 22:28:00] [plan v1.1] [START] T11: Validate normalized dataset outputs
+[2026-04-01 22:28:00] [plan v1.1] [DONE] T11: Added normalized dataset validation checks, quality report output, and unit coverage for the normalization pipeline
+[2026-04-01 22:41:00] [plan v1.1] [START] T12: Define event schemas and topic boundaries for simulated online behavior
+[2026-04-01 22:41:00] [plan v1.1] [DONE] T12: Added an event contract document for interaction and catalog topics, payload rules, and replay conventions
+[2026-04-01 22:41:00] [plan v1.1] [START] T13: Implement synthetic interaction generation
+[2026-04-01 22:41:00] [plan v1.1] [DONE] T13: Added deterministic interaction event generation from normalized transactions and products
+[2026-04-01 22:41:00] [plan v1.1] [START] T14: Implement catalog change event generation
+[2026-04-01 22:41:00] [plan v1.1] [DONE] T14: Added deterministic catalog update event generation from normalized products
+[2026-04-01 22:41:00] [plan v1.1] [START] T15: Implement local event publishing and replay
+[2026-04-01 22:41:00] [plan v1.1] [DONE] T15: Added local replay-batch publishing and manifest writing for interaction and catalog topics
+[2026-04-01 22:41:00] [plan v1.1] [START] T16: Validate replayed event quality
+[2026-04-01 22:41:00] [plan v1.1] [DONE] T16: Added replay validation checks and unit coverage for generated event batches
