@@ -50,3 +50,30 @@ point_in_time_training_dataset_source = FileSource(
     file_format=ParquetFormat(),
     timestamp_field="label_timestamp",
 )
+
+session_intent_snapshot_source = FileSource(
+    name="session_intent_snapshot_source",
+    path=_file_uri(
+        str(paths.features_root / "online_snapshots" / "session_intent_features.parquet")
+    ),
+    file_format=ParquetFormat(),
+    timestamp_field="last_event_time",
+)
+
+customer_realtime_snapshot_source = FileSource(
+    name="customer_realtime_snapshot_source",
+    path=_file_uri(
+        str(paths.features_root / "online_snapshots" / "customer_realtime_features.parquet")
+    ),
+    file_format=ParquetFormat(),
+    timestamp_field="event_timestamp",
+)
+
+article_realtime_snapshot_source = FileSource(
+    name="article_realtime_snapshot_source",
+    path=_file_uri(
+        str(paths.features_root / "online_snapshots" / "article_realtime_features.parquet")
+    ),
+    file_format=ParquetFormat(),
+    timestamp_field="event_timestamp",
+)
