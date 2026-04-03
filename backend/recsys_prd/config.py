@@ -127,6 +127,43 @@ class MLflowSettings(BaseModel):
     artifact_root: str = "./data/mlflow"
 
 
+class SparkSettings(BaseModel):
+    app_name: str = "recsys-prd-pipelines"
+    master: str = "local[*]"
+    warehouse_dir: str = "data/_spark/warehouse"
+    driver_bind_address: str = "127.0.0.1"
+    ui_enabled: bool = False
+    shuffle_partitions: int = 8
+
+    @classmethod
+    def from_env(cls) -> SparkSettings:
+        return cls(
+            app_name=os.getenv(
+                "RECSYS_PRD_SPARK_APP_NAME",
+                SparkSettings.model_fields["app_name"].default,
+            ),
+            master=os.getenv(
+                "RECSYS_PRD_SPARK_MASTER",
+                SparkSettings.model_fields["master"].default,
+            ),
+            warehouse_dir=os.getenv(
+                "RECSYS_PRD_SPARK_WAREHOUSE_DIR",
+                SparkSettings.model_fields["warehouse_dir"].default,
+            ),
+            driver_bind_address=os.getenv(
+                "RECSYS_PRD_SPARK_DRIVER_BIND_ADDRESS",
+                SparkSettings.model_fields["driver_bind_address"].default,
+            ),
+            ui_enabled=os.getenv("RECSYS_PRD_SPARK_UI_ENABLED", "false").lower() == "true",
+            shuffle_partitions=int(
+                os.getenv(
+                    "RECSYS_PRD_SPARK_SHUFFLE_PARTITIONS",
+                    SparkSettings.model_fields["shuffle_partitions"].default,
+                )
+            ),
+        )
+
+
 class ServiceSettings(BaseModel):
     broker: BrokerSettings = Field(default_factory=BrokerSettings)
     redis: RedisSettings = Field(default_factory=RedisSettings)
@@ -196,6 +233,7 @@ class AppSettings(BaseSettings):
     environment: str = "local"
     paths: PathSettings = Field(default_factory=PathSettings.from_env)
     services: ServiceSettings = Field(default_factory=ServiceSettings.from_env)
+    spark: SparkSettings = Field(default_factory=SparkSettings.from_env)
 
 
 @lru_cache(maxsize=1)

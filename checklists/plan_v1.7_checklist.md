@@ -6,7 +6,7 @@
 - [ ] T133: Add compatibility shims for legacy imports that will be migrated out of backend-owned paths
 
 ## Milestone M2: Introduce Spark as the Default Runtime for Offline Data Pipelines
-- [ ] T134: Define the Spark runtime contract for normalization, validation, and training-dataset preparation
+- [x] T134: Define the Spark runtime contract for normalization, validation, and training-dataset preparation
 - [ ] T135: Add a shared Spark session bootstrap and offline dataset IO layer for pipeline jobs
 - [ ] T136: Define parity checks between the current offline outputs and the Spark-produced outputs
 

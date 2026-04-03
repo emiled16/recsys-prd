@@ -259,3 +259,13 @@
 - Decision: Add a promotion-gate report that combines retrieval readiness, ranking metrics, API smoke results, and online evaluation guardrails into one decision artifact.
 - Rationale: This gives orchestration and future deployment steps one consistent source of truth for promotion eligibility.
 - Consequences: Dagster evaluation and promotion jobs must produce or consume the gate report instead of inferring readiness from a single model artifact.
+
+## [2026-04-02] D-027: Standardize offline pipeline execution on Spark while keeping serving paths dependency-light
+- Plan: v1.7
+- Context: The repository already split top-level runtime surfaces, but offline normalization and validation still behave like lightweight in-process Python jobs even though they are pipeline concerns. The next stage needs a clearer compute boundary for batch work without pulling Spark into the serving runtime.
+- Options considered:
+  - Keep offline jobs on ad hoc in-process Python implementations.
+  - Standardize normalization, validation, and training-set preparation on `pyspark` with lazy imports so serving code remains unaffected.
+- Decision: Treat Spark as the default execution runtime for offline pipeline stages, configured through `RECSYS_PRD_SPARK_*` settings and initialized only inside pipeline-owned modules.
+- Rationale: This creates a real batch-compute boundary for offline work, makes later scale-up easier, and keeps the FastAPI/backend surface free from eager Spark runtime coupling.
+- Consequences: Pipeline modules need shared Spark session helpers, parity checks against the pre-Spark outputs, and explicit artifact contracts so downstream consumers do not observe a behavior change.

@@ -161,6 +161,18 @@ uv run dg check defs
 uv run dg dev
 ```
 
+Offline pipeline jobs use Spark as their default execution runtime. Local jobs currently target
+`local[*]` with configuration sourced from:
+- `RECSYS_PRD_SPARK_APP_NAME`
+- `RECSYS_PRD_SPARK_MASTER`
+- `RECSYS_PRD_SPARK_WAREHOUSE_DIR`
+- `RECSYS_PRD_SPARK_DRIVER_BIND_ADDRESS`
+- `RECSYS_PRD_SPARK_UI_ENABLED`
+- `RECSYS_PRD_SPARK_SHUFFLE_PARTITIONS`
+
+Spark is intended for offline-only pipeline stages such as normalization, validation, and
+training-set preparation. It is not part of the FastAPI serving path.
+
 Validate online freshness and offline-online feature parity with:
 
 ```bash
