@@ -1,0 +1,15 @@
+"""Contracts for simulator-owned replay generation and validation."""
+
+from simulator.contracts import (
+    CATALOG_EVENT_TYPES,
+    CATALOG_REQUIRED_FIELDS,
+    INTERACTION_EVENT_TYPES,
+    INTERACTION_REQUIRED_FIELDS,
+)
+
+__all__ = [
+    "CATALOG_EVENT_TYPES",
+    "CATALOG_REQUIRED_FIELDS",
+    "INTERACTION_EVENT_TYPES",
+    "INTERACTION_REQUIRED_FIELDS",
+]
