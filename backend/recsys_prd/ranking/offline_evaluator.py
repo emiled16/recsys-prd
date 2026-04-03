@@ -9,7 +9,7 @@ from recsys_prd.config import AppSettings, get_app_settings
 from recsys_prd.io.json_ops import write_json
 from recsys_prd.io.tabular_ops import read_tabular_rows
 from recsys_prd.ranking.model import evaluate_ranking_model
-from recsys_prd.ranking.training import load_ranking_model
+from recsys_prd.ranking.serving import load_registered_ranking_model
 
 
 class OfflineRankingEvaluator:
@@ -28,13 +28,15 @@ class OfflineRankingEvaluator:
         models_root = models_root or self.settings.paths.models_root
         registration_path = registration_path or _latest_registration_path(models_root)
         registration = json.loads(registration_path.read_text(encoding="utf-8"))
-        model = load_ranking_model(Path(registration["artifacts"]["model_path"]))
-        rows = read_tabular_rows(Path(registration["dataset"]["path"]))
+        bundle = load_registered_ranking_model(registration_path)
+        if bundle is None:
+            raise FileNotFoundError("The registered ranking model artifact could not be loaded.")
+        rows = read_tabular_rows(bundle.dataset_path)
 
-        ranked_groups = _rank_groups(rows, model)
+        ranked_groups = _rank_groups(rows, bundle.model)
         metrics = {
             **_topk_metrics(ranked_groups, k=k),
-            "pairwise_quality": evaluate_ranking_model(model, rows)["pairwise_accuracy"],
+            "pairwise_quality": evaluate_ranking_model(bundle.model, rows)["pairwise_accuracy"],
         }
         report_path = (
             models_root

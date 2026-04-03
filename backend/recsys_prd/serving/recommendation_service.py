@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-import json
 from datetime import datetime, timezone
 from pathlib import Path
 from time import perf_counter
@@ -9,6 +8,7 @@ from typing import Any
 from recsys_prd.api.models import RecommendationItem, RecommendationRequest, RecommendationResponse
 from recsys_prd.config import AppSettings, get_app_settings
 from recsys_prd.observability.metrics import FALLBACK_RESPONSES, RANKING_LATENCY, RETRIEVAL_LATENCY
+from recsys_prd.ranking.serving import load_latest_registered_ranking_model
 from recsys_prd.retrieval.candidate_retrieval import CandidateRetriever
 from recsys_prd.retrieval.contracts import RetrievalRequest
 from recsys_prd.serving.experimentation import ExperimentAssigner, ExposureLogger
@@ -154,13 +154,5 @@ class RecommendationService:
 
 
 def _load_registered_ranker(models_root: Path):
-    latest_candidates = sorted((models_root / "registry").glob("*/latest_candidate.json"))
-    if not latest_candidates:
-        return None
-    registration = json.loads(latest_candidates[-1].read_text(encoding="utf-8"))
-    model_path = Path(registration["artifacts"]["model_path"])
-    if not model_path.exists():
-        return None
-    from recsys_prd.ranking.training import load_ranking_model
-
-    return load_ranking_model(model_path)
+    bundle = load_latest_registered_ranking_model(models_root=models_root)
+    return None if bundle is None else bundle.model
