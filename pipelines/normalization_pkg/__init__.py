@@ -1,4 +1,4 @@
-"""Pipeline-owned normalization package."""
+"""Pipeline-owned normalization package with temporary backend compatibility shims."""
 
 from pipelines.normalization_pkg.job import run_hm_normalization
 
