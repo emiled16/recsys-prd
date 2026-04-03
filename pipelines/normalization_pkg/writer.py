@@ -1,1 +1,3 @@
-"""Pipeline-owned normalized dataset writers."""
+from recsys_prd.normalization.writer import write_dataset_bundle
+
+__all__ = ["write_dataset_bundle"]
