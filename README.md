@@ -11,12 +11,14 @@ The repository now includes a runnable backend stack for ingestion, normalizatio
 ## Repository Structure
 
 - `backend/`: Python backend package, scripts, and tests.
+- `backend/feast_repo/`: Feast feature-store definitions, sources, views, and registry ordering.
 - `simulator/`: Simulator-owned synthetic event generation, replay manifests, and replay validation.
 - `pipelines/`: Offline normalization, PIT dataset building, Feast batch flows, and ranking-dataset assembly.
 - `infra/local/`: Docker Compose, env defaults, and bootstrap helpers for shared local services.
 - `infra/helm/`: Helm charts and environment overlays for backend, orchestration, simulator, pipelines, and frontend deployment surfaces.
 - `orchestration/`: Dagster workspace, user code, and deployment packaging.
 - `frontend/`: Vite-based frontend workspace that runs outside Docker Compose during local development.
+- `ops/observability/`: Prometheus config and Grafana dashboards for the local stack.
 - `docs/`: Project context, charter, system design, and progress tracking.
 - `plans/`: Versioned implementation plans.
 - `checklists/`: Matching execution checklists for each plan version.
@@ -26,11 +28,36 @@ The repository now includes a runnable backend stack for ingestion, normalizatio
 - `docs/project-charter.md`: Project scope, objectives, constraints, and acceptance criteria.
 - `docs/dataset-contract.md`: Source dataset contract for H&M entities and image assets.
 - `docs/data-layout.md`: Local storage and dataset layout conventions for raw and derived data.
+- `docs/event-contract.md`: Replay, tracking, and simulator event contracts.
+- `docs/key-decisions.md`: Architecture decision log.
 - `docs/offline-feature-spec.md`: Offline feature entities, feature views, and source mappings.
 - `docs/online-feature-requirements.md`: Freshness and streaming-input requirements for online features.
 - `docs/multimodal-representation-strategy.md`: Retrieval modality and fusion strategy for product representations.
+- `docs/sys-design.md`: End-to-end system topology and runtime ownership.
+- `docs/progress.md`: Append-only implementation progress log.
 - `plans/plan_v1.7.md`: Current implementation plan.
 - `checklists/plan_v1.7_checklist.md`: Current execution checklist.
+
+## Canonical Entry Surfaces
+
+- `backend/recsys_prd/api/`: FastAPI application and public request/response contracts.
+- `backend/recsys_prd/serving/`: online recommendation serving, tracking, and experiment reporting.
+- `backend/recsys_prd/retrieval/`: embedding artifacts, vector indexes, retrieval contracts, and serving-time retrieval logic.
+- `backend/recsys_prd/ranking/`: serving-side ranking contracts, registry, promotion, and evaluation helpers.
+- `backend/recsys_prd/features/`: online/offline feature access layers, parity validation, and Redis/Feast integrations.
+- `backend/recsys_prd/services/`: external service clients and integration adapters for Redpanda, Qdrant, Redis, and MLflow.
+- `pipelines/normalization/`: canonical offline normalization runtime and transforms.
+- `pipelines/validation/`: canonical normalized-data validation runtime.
+- `pipelines/training/`: canonical offline training dataset builders and batch training/evaluation entrypoints.
+- `pipelines/spark/`: shared Spark bootstrap, dataset IO helpers, and parity utilities for pipeline jobs.
+- `simulator/`: canonical replay generation and replay validation runtime.
+- `orchestration/projects/recsys_orchestration/`: canonical Dagster code location and definitions.
+
+## Internal Helper Packages
+
+- `pipelines/normalization_pkg/` and `pipelines/validation_pkg/` are migration-era helper packages that support the `v1.7` refactor; use the canonical `pipelines/normalization/` and `pipelines/validation/` entrypoints unless you are editing the internals.
+- `backend/recsys_prd/io/` contains shared cross-runtime utilities such as JSON, JSONL, CSV, Parquet, and tabular compatibility helpers.
+- `backend/feast_repo/entity_defs/`, `source_defs/`, `offline_view_defs/`, and `online_view_defs/` are the segregated implementation modules behind the thin public Feast aggregators.
 
 ## Working Principles
 
@@ -223,6 +250,11 @@ helm template orchestration infra/helm/orchestration -f infra/helm/environments/
   `fetch`-based client.
 - `infra/helm/` owns production-like packaging for backend API, frontend, orchestration, simulator
   jobs, and pipelines jobs.
+
+## Notes
+
+- Ignore generated cache directories such as `__pycache__/`, `.pytest_cache/`, `.ruff_cache/`, and local virtualenv contents when navigating the repo.
+- The repo root README is a map of the major surfaces. Detailed contracts and rationale live in the documents under `docs/`.
 
 ## v1.7 Migration Notes
 
