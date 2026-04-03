@@ -1,6 +1,6 @@
 project: recsys_prd
 provider: local
-registry: data/registry.db
+registry: ../../data/registry.db
 offline_store:
   type: file
 online_store:
