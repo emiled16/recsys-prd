@@ -2,7 +2,7 @@
 
 ## Milestone M1: Prepare the Codebase for Boundary Migration
 - [x] T131: Create target package scaffolds for pipeline-owned offline code, simulator-owned replay code, and shared artifact IO
-- [ ] T132: Audit and classify current imports from backend normalization, validation, and events modules
+- [x] T132: Audit and classify current imports from backend normalization, validation, and events modules
 - [ ] T133: Add compatibility shims for legacy imports that will be migrated out of backend-owned paths
 
 ## Milestone M2: Introduce Spark as the Default Runtime for Offline Data Pipelines
