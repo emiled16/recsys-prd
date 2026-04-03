@@ -8,7 +8,7 @@
 ## Milestone M2: Introduce Spark as the Default Runtime for Offline Data Pipelines
 - [x] T134: Define the Spark runtime contract for normalization, validation, and training-dataset preparation
 - [x] T135: Add a shared Spark session bootstrap and offline dataset IO layer for pipeline jobs
-- [ ] T136: Define parity checks between the current offline outputs and the Spark-produced outputs
+- [x] T136: Define parity checks between the current offline outputs and the Spark-produced outputs
 
 ## Milestone M3: Move Normalization and Offline Validation Out of the Backend Package
 - [ ] T137: Create pipeline-owned normalization packages for customers, products, transactions, and shared cleaning logic
