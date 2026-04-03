@@ -93,6 +93,10 @@ Ordering rules:
 - Each topic has its own JSON Lines file.
 - A replay manifest records source inputs, row counts, and the generation timestamp.
 - `simulator/` owns replay-batch generation and manifest writing.
+- Replay generation, replay validation, and fake traffic helpers belong to `simulator/` rather than
+  `backend/recsys_prd/events`.
+- Shared JSONL helpers and event ID builders live under `recsys_prd.io.*` because they are
+  cross-runtime utilities rather than simulator runtime entrypoints.
 - `backend/` consumes replay batches through these topic files or equivalent broker topics without importing simulator implementation details.
 - Public recommendation tracking events are accepted through `POST /events` and written as
   append-only JSONL audit records under `data/reports/experiments/` in local development.
@@ -107,7 +111,14 @@ Ordering rules:
 
 ## Boundary Rules
 - The simulator may read normalized datasets to derive synthetic traffic.
+- The simulator owns:
+  - deterministic replay-batch generation
+  - replay manifest writing
+  - replay validation
+  - fake traffic producers that emit the same topic contracts
 - The backend may consume `interaction_events` and `catalog_events` payloads, but it must treat the payload schema and manifest as the public handoff.
+- The backend must not reach into simulator implementation modules when reading replay artifacts;
+  it should consume `simulator.*` entrypoints or shared artifact IO helpers only.
 - The frontend may emit recommendation tracking events only through the public `POST /events`
   contract and should not publish directly to broker topics or write local files.
 - Future non-simulator producers must emit the same topic contract if they are intended to replace local fake traffic.

@@ -18,7 +18,7 @@
 ## Milestone M4: Move Simulator and Replay Concerns Fully Out of the Backend Package
 - [x] T140: Split backend `events` into simulator-owned replay generation and shared artifact IO contracts
 - [x] T141: Update backend, pipeline, and evaluator code to consume simulator artifacts through explicit contracts instead of backend event imports
-- [ ] T142: Publish simulator ownership and runtime rules for replay generation, fake traffic, and event validation
+- [x] T142: Publish simulator ownership and runtime rules for replay generation, fake traffic, and event validation
 
 ## Milestone M5: Separate Offline Training Pipelines From Backend-Serving Model Components
 - [ ] T143: Move ranking training dataset builders and offline training entrypoints into the pipeline-owned training surface

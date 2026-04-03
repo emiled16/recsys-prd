@@ -286,6 +286,10 @@ application runtimes and shared platform dependencies.
 - `infra/helm/frontend/` deploys the frontend delivery surface.
 - `infra/helm/orchestration/` deploys the Dagster control plane.
 - `infra/helm/simulator-job/` deploys replay and synthetic-traffic jobs.
+- `simulator/` owns replay generation, replay validation, and fake traffic producers.
+- Shared replay artifact helpers such as JSONL readers/writers and deterministic event ID builders
+  are treated as cross-runtime utilities under `recsys_prd.io.*`, not as backend-owned event
+  runtime modules.
 - `infra/helm/pipelines-job/` deploys offline batch jobs for normalization, features, embeddings,
   training, and evaluation.
 - Shared dependencies such as Kafka/Redpanda, Redis, Qdrant, MLflow, and observability remain

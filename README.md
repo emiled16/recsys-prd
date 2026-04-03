@@ -212,6 +212,9 @@ helm template orchestration infra/helm/orchestration -f infra/helm/environments/
   integrations. It consumes shared services only through configuration.
 - `simulator/` owns synthetic traffic generation, replay-batch publication, and replay contract
   validation.
+- Shared replay helpers such as JSONL artifact IO and deterministic event ID builders live under
+  `backend/recsys_prd/io/` because they are consumed across simulator, pipelines, and backend
+  surfaces.
 - `pipelines/` owns normalization, offline feature generation, Feast materialization, and ranking
   dataset assembly.
 - `orchestration/` owns Dagster definitions, schedules, and local Dagster runtime commands.
