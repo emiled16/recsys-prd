@@ -268,4 +268,8 @@
   - Standardize normalization, validation, and training-set preparation on `pyspark` with lazy imports so serving code remains unaffected.
 - Decision: Treat Spark as the default execution runtime for offline pipeline stages, configured through `RECSYS_PRD_SPARK_*` settings and initialized only inside pipeline-owned modules.
 - Rationale: This creates a real batch-compute boundary for offline work, makes later scale-up easier, and keeps the FastAPI/backend surface free from eager Spark runtime coupling.
-- Consequences: Pipeline modules need shared Spark session helpers, parity checks against the pre-Spark outputs, and explicit artifact contracts so downstream consumers do not observe a behavior change.
+- Consequences:
+  - Pipeline modules need shared Spark session helpers and Spark-owned dataset IO entrypoints.
+  - Spark jobs must preserve the existing artifact contract under `data/normalized/`, `data/features/offline/`, and `data/models/training_sets/`.
+  - Parity checks must compare Spark outputs against the pre-Spark outputs for row counts, required fields, key uniqueness, and timestamp normalization before legacy code paths are removed.
+  - Backend serving code must not import `pyspark` or initialize Spark sessions.

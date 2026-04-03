@@ -29,8 +29,8 @@ The repository now includes a runnable backend stack for ingestion, normalizatio
 - `docs/offline-feature-spec.md`: Offline feature entities, feature views, and source mappings.
 - `docs/online-feature-requirements.md`: Freshness and streaming-input requirements for online features.
 - `docs/multimodal-representation-strategy.md`: Retrieval modality and fusion strategy for product representations.
-- `plans/plan_v1.6.md`: Current implementation plan.
-- `checklists/plan_v1.6_checklist.md`: Current execution checklist.
+- `plans/plan_v1.7.md`: Current implementation plan.
+- `checklists/plan_v1.7_checklist.md`: Current execution checklist.
 
 ## Working Principles
 
@@ -169,6 +169,13 @@ Offline pipeline jobs use Spark as their default execution runtime. Local jobs c
 - `RECSYS_PRD_SPARK_DRIVER_BIND_ADDRESS`
 - `RECSYS_PRD_SPARK_UI_ENABLED`
 - `RECSYS_PRD_SPARK_SHUFFLE_PARTITIONS`
+
+The pipeline runtime contract is:
+- initialize Spark only from pipeline-owned helpers such as `pipelines.spark.build_spark_session`
+- read and write offline datasets through `pipelines.spark.io`
+- keep Spark imports out of FastAPI, serving, and online feature modules
+- preserve the existing artifact paths under `data/normalized/`, `data/features/offline/`, and `data/models/training_sets/` even when the execution engine changes
+- validate Spark migrations against the pre-Spark outputs with row-count, schema, key, and timestamp parity checks before deleting compatibility paths
 
 Spark is intended for offline-only pipeline stages such as normalization, validation, and
 training-set preparation. It is not part of the FastAPI serving path.

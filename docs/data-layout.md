@@ -179,6 +179,8 @@ Rules:
 - Treat this layer as runtime metadata, not as a durable business artifact.
 - It may be deleted and recreated between local runs.
 - Backend serving code must not read from this layer directly.
+- Pipeline-owned Spark jobs should resolve this path through `AppSettings.spark.warehouse_dir` rather than hard-coded paths.
+- Spark runtime helpers may use this layer for warehouse metadata, but business datasets must still be written to the existing `data/normalized/`, `data/features/offline/`, and `data/models/training_sets/` contracts.
 
 ## Naming Rules
 - Use lowercase snake_case for directories and file stems.
