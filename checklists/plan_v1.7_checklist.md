@@ -23,7 +23,7 @@
 ## Milestone M5: Separate Offline Training Pipelines From Backend-Serving Model Components
 - [x] T143: Move ranking training dataset builders and offline training entrypoints into the pipeline-owned training surface
 - [x] T144: Define the backend-owned serving model contract separate from pipeline-owned training implementations
-- [ ] T145: Move offline evaluation and training orchestration imports to pipeline-owned or orchestration-owned entrypoints
+- [x] T145: Move offline evaluation and training orchestration imports to pipeline-owned or orchestration-owned entrypoints
 
 ## Milestone M6: Align Orchestration, Testing, and Documentation With the New Boundaries
 - [ ] T146: Remove temporary migration shims after downstream imports have been moved to their owning packages

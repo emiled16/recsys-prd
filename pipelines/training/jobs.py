@@ -149,3 +149,38 @@ def _append_run_log(path: Path, manifest_payload: dict[str, object]) -> None:
         }
     )
     write_jsonl(path, existing_rows)
+
+
+def evaluate_registered_ranking_model(
+    *,
+    models_root: Path | None = None,
+    registration_path: Path | None = None,
+    settings: AppSettings | None = None,
+) -> dict[str, Path | str | dict[str, float]]:
+    """Pipeline-owned entrypoint for offline registered-model evaluation."""
+    from recsys_prd.ranking.evaluation import (
+        evaluate_registered_ranking_model as backend_evaluate_registered_ranking_model,
+    )
+
+    return backend_evaluate_registered_ranking_model(
+        models_root=models_root,
+        registration_path=registration_path,
+        settings=settings,
+    )
+
+
+def evaluate_offline_ranking_quality(
+    *,
+    models_root: Path | None = None,
+    registration_path: Path | None = None,
+    k: int = 5,
+    settings: AppSettings | None = None,
+) -> dict[str, Path | dict[str, float]]:
+    """Pipeline-owned entrypoint for grouped offline ranking quality evaluation."""
+    from recsys_prd.ranking.offline_evaluator import OfflineRankingEvaluator
+
+    return OfflineRankingEvaluator(settings=settings).evaluate(
+        models_root=models_root,
+        registration_path=registration_path,
+        k=k,
+    )

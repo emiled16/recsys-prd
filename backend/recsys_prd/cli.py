@@ -4,6 +4,15 @@ import argparse
 from pathlib import Path
 from typing import Sequence
 
+from pipelines.normalization import run_hm_normalization
+from pipelines.training import (
+    build_point_in_time_training_dataset,
+    build_ranking_dataset,
+    evaluate_offline_ranking_quality,
+    evaluate_registered_ranking_model,
+    train_local_ranking_model,
+)
+from pipelines.validation import validate_hm_normalized
 from simulator import publish_local_replay, validate_local_replay
 
 from recsys_prd.api.smoke import build_api_smoke_report
@@ -14,15 +23,9 @@ from recsys_prd.features.online_service import OnlineFeatureService
 from recsys_prd.features.online_store import RedisOnlineFeatureStore
 from recsys_prd.features.parity_validation import validate_feature_parity_and_freshness
 from recsys_prd.features.streaming_features import compute_online_feature_store
-from recsys_prd.features.training_dataset import build_point_in_time_training_dataset
 from recsys_prd.ingestion.hm_raw import ingest_hm_raw
-from recsys_prd.normalization.pipeline import run_hm_normalization
-from recsys_prd.ranking.dataset import build_ranking_dataset
-from recsys_prd.ranking.evaluation import evaluate_registered_ranking_model
-from recsys_prd.ranking.offline_evaluator import OfflineRankingEvaluator
 from recsys_prd.ranking.promotion import evaluate_promotion_gate
 from recsys_prd.ranking.registry import register_candidate_ranking_model
-from recsys_prd.ranking.training import train_local_ranking_model
 from recsys_prd.retrieval.candidate_retrieval import CandidateRetriever
 from recsys_prd.retrieval.contracts import RetrievalRequest
 from recsys_prd.retrieval.embedding_pipeline import build_embedding_artifacts
@@ -32,7 +35,6 @@ from recsys_prd.services.mlflow_store import probe_mlflow_tracking
 from recsys_prd.services.qdrant_store import ensure_qdrant_connection, load_qdrant_indexes
 from recsys_prd.services.redpanda import KafkaReplayPublisher, validate_broker_replay
 from recsys_prd.serving.online_evaluation import build_online_experiment_report
-from recsys_prd.validation.hm_normalized import validate_hm_normalized
 
 
 def build_parser() -> argparse.ArgumentParser:
@@ -386,7 +388,7 @@ def run_ranking_command(args: argparse.Namespace, settings: AppSettings) -> int:
             print(f"{name}: {value}")
         return 0
     if args.command == "evaluate-ranking-quality":
-        outputs = OfflineRankingEvaluator(settings=settings).evaluate()
+        outputs = evaluate_offline_ranking_quality(settings=settings)
         for name, value in outputs.items():
             print(f"{name}: {value}")
         return 0
