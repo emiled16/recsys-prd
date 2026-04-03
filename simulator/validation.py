@@ -3,7 +3,7 @@ from __future__ import annotations
 from pathlib import Path
 
 from recsys_prd.config import AppSettings, get_app_settings
-from recsys_prd.events.io import read_jsonl
+from recsys_prd.io.jsonl_ops import read_jsonl
 from recsys_prd.io.json_ops import write_json
 
 from simulator.contracts import CATALOG_REQUIRED_FIELDS, INTERACTION_REQUIRED_FIELDS

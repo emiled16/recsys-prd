@@ -16,7 +16,7 @@
 - [x] T139: Move normalized-data validation into a pipeline-owned validation package with Spark-aware checks
 
 ## Milestone M4: Move Simulator and Replay Concerns Fully Out of the Backend Package
-- [ ] T140: Split backend `events` into simulator-owned replay generation and shared artifact IO contracts
+- [x] T140: Split backend `events` into simulator-owned replay generation and shared artifact IO contracts
 - [ ] T141: Update backend, pipeline, and evaluator code to consume simulator artifacts through explicit contracts instead of backend event imports
 - [ ] T142: Publish simulator ownership and runtime rules for replay generation, fake traffic, and event validation
 

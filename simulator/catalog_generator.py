@@ -3,7 +3,7 @@ from __future__ import annotations
 from datetime import datetime, timedelta
 from pathlib import Path
 
-from recsys_prd.events.ids import build_event_id
+from recsys_prd.io.event_ids import build_event_id
 from recsys_prd.io.tabular_ops import read_tabular_rows
 
 
@@ -75,4 +75,3 @@ def _catalog_event(
         "changed_fields": changed_fields,
         "source": source,
     }
-

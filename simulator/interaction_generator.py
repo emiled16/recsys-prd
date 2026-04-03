@@ -3,7 +3,7 @@ from __future__ import annotations
 from datetime import datetime, timedelta
 from pathlib import Path
 
-from recsys_prd.events.ids import build_event_id
+from recsys_prd.io.event_ids import build_event_id
 from recsys_prd.io.tabular_ops import read_tabular_rows
 
 
@@ -108,4 +108,3 @@ def _interaction_event(
 def _build_query_text(product: dict[str, str]) -> str:
     tokens = [product.get("product_type_name", ""), product.get("colour_group_name", "")]
     return " ".join(token for token in tokens if token).strip()
-

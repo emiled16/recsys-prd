@@ -4,8 +4,8 @@ from datetime import datetime, timezone
 from pathlib import Path
 
 from recsys_prd.config import AppSettings, get_app_settings
-from recsys_prd.events.io import write_jsonl
 from recsys_prd.io.json_ops import write_json
+from recsys_prd.io.jsonl_ops import write_jsonl
 from recsys_prd.schemas.artifacts import ReplayBatchManifest, ReplayTopicManifest
 
 from simulator.catalog_generator import generate_catalog_events
@@ -53,4 +53,3 @@ def publish_local_replay(
         "catalog_events": catalog_path,
         "manifest": manifest_path,
     }
-
