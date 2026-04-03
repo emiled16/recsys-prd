@@ -7,7 +7,8 @@ import tempfile
 import unittest
 from pathlib import Path
 
-from recsys_prd.events.replay import publish_local_replay
+from simulator import publish_local_replay
+
 from recsys_prd.features.streaming_features import compute_online_feature_store
 from recsys_prd.normalization.pipeline import run_hm_normalization
 
@@ -36,9 +37,15 @@ class OnlineFeatureComputationTests(unittest.TestCase):
         self.assertTrue(outputs["customer_realtime_features"].exists())
         self.assertTrue(outputs["article_realtime_features"].exists())
 
-        session_payload = json.loads(outputs["session_intent_features"].read_text(encoding="utf-8"))
-        customer_payload = json.loads(outputs["customer_realtime_features"].read_text(encoding="utf-8"))
-        article_payload = json.loads(outputs["article_realtime_features"].read_text(encoding="utf-8"))
+        session_payload = json.loads(
+            outputs["session_intent_features"].read_text(encoding="utf-8")
+        )
+        customer_payload = json.loads(
+            outputs["customer_realtime_features"].read_text(encoding="utf-8")
+        )
+        article_payload = json.loads(
+            outputs["article_realtime_features"].read_text(encoding="utf-8")
+        )
 
         self.assertEqual(len(session_payload), 1)
         session_features = next(iter(session_payload.values()))

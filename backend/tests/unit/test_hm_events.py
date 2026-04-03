@@ -6,8 +6,8 @@ import tempfile
 import unittest
 from pathlib import Path
 
-from recsys_prd.events.replay import publish_local_replay
-from recsys_prd.events.validation import validate_local_replay
+from simulator import publish_local_replay, validate_local_replay
+
 from recsys_prd.normalization.pipeline import run_hm_normalization
 
 

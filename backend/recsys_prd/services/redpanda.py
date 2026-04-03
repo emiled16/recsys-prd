@@ -8,7 +8,7 @@ from confluent_kafka import Consumer, Producer
 from confluent_kafka.admin import AdminClient, NewTopic
 
 from recsys_prd.config import AppSettings, get_app_settings
-from recsys_prd.events.io import read_jsonl
+from recsys_prd.io.jsonl_ops import read_jsonl
 
 
 def bootstrap_redpanda_topics(

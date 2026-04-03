@@ -4,10 +4,10 @@ import argparse
 from pathlib import Path
 from typing import Sequence
 
+from simulator import publish_local_replay, validate_local_replay
+
 from recsys_prd.api.smoke import build_api_smoke_report
 from recsys_prd.config import AppSettings, get_app_settings
-from recsys_prd.events.replay import publish_local_replay
-from recsys_prd.events.validation import validate_local_replay
 from recsys_prd.features.consumer import consume_feature_updates
 from recsys_prd.features.feast_store import apply_feast_repo, parse_feast_end_date
 from recsys_prd.features.online_service import OnlineFeatureService

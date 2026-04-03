@@ -5,8 +5,8 @@ from datetime import datetime, timezone
 from pathlib import Path
 
 from recsys_prd.config import AppSettings, get_app_settings
-from recsys_prd.events.io import read_jsonl, write_jsonl
 from recsys_prd.io.json_ops import write_json
+from recsys_prd.io.jsonl_ops import read_jsonl, write_jsonl
 from recsys_prd.ranking.training import train_local_ranking_model
 from recsys_prd.schemas.artifacts import ModelRegistrationRecord
 from recsys_prd.services.mlflow_store import MLflowModelRegistrar

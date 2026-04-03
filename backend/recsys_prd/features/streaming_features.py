@@ -4,13 +4,13 @@ from datetime import datetime
 from pathlib import Path
 
 from recsys_prd.config import AppSettings, get_app_settings
-from recsys_prd.events.io import read_jsonl
 from recsys_prd.features.online_state import (
     empty_online_state,
     trim_event_pairs,
     trim_times,
 )
 from recsys_prd.features.online_store import write_online_store
+from recsys_prd.io.jsonl_ops import read_jsonl
 
 
 def compute_online_feature_store(

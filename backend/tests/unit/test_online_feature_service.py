@@ -6,7 +6,8 @@ import tempfile
 import unittest
 from pathlib import Path
 
-from recsys_prd.events.replay import publish_local_replay
+from simulator import publish_local_replay
+
 from recsys_prd.features.online_service import OnlineFeatureService
 from recsys_prd.features.streaming_features import compute_online_feature_store
 from recsys_prd.normalization.pipeline import run_hm_normalization

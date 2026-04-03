@@ -4,8 +4,8 @@ from datetime import datetime, timezone
 from pathlib import Path
 
 from recsys_prd.config import AppSettings, get_app_settings
-from recsys_prd.events.io import read_jsonl
 from recsys_prd.io.json_ops import write_json
+from recsys_prd.io.jsonl_ops import read_jsonl
 from recsys_prd.observability.metrics import (
     ONLINE_EXPERIMENT_CTR,
     ONLINE_EXPERIMENT_FALLBACK_RATE,

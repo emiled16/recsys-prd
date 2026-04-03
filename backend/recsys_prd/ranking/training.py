@@ -5,8 +5,8 @@ from datetime import datetime, timezone
 from pathlib import Path
 
 from recsys_prd.config import AppSettings, get_app_settings
-from recsys_prd.events.io import read_jsonl, write_jsonl
 from recsys_prd.io.json_ops import write_json
+from recsys_prd.io.jsonl_ops import read_jsonl, write_jsonl
 from recsys_prd.io.tabular_ops import read_tabular_rows
 from recsys_prd.ranking.dataset import build_ranking_dataset
 from recsys_prd.ranking.model import RankingModel, RankingTrainingConfig

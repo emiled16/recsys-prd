@@ -7,7 +7,7 @@ import tempfile
 import unittest
 from pathlib import Path
 
-from recsys_prd.events.io import read_jsonl
+from recsys_prd.io.jsonl_ops import read_jsonl
 from recsys_prd.normalization.pipeline import run_hm_normalization
 from recsys_prd.retrieval.embedders import ImageEmbedder, TextEmbedder
 from recsys_prd.retrieval.embedding_pipeline import (
