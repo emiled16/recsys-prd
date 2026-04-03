@@ -179,6 +179,16 @@ Rules:
 - Treat this layer as runtime metadata, not as a durable business artifact.
 - It may be deleted and recreated between local runs.
 - Backend serving code must not read from this layer directly.
+
+## Spark Migration Parity Checks
+- Spark migrations for normalized datasets must preserve row counts for each published dataset.
+- Key uniqueness must remain stable for canonical identifiers such as `customer_id`, `article_id`,
+  and `event_id`.
+- Required field completeness must remain stable across the baseline and Spark-produced outputs.
+- Candidate Spark outputs may differ in physical file layout or partitioning, but not in logical
+  dataset membership.
+- Ordering is treated as a diagnostic signal rather than a hard contract unless a downstream
+  artifact explicitly depends on ordered rows.
 - Pipeline-owned Spark jobs should resolve this path through `AppSettings.spark.warehouse_dir` rather than hard-coded paths.
 - Spark runtime helpers may use this layer for warehouse metadata, but business datasets must still be written to the existing `data/normalized/`, `data/features/offline/`, and `data/models/training_sets/` contracts.
 
