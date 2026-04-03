@@ -31,37 +31,19 @@ def _reload_feast_repo_modules(settings: AppSettings):
 def offline_feast_repo_objects(*, settings: AppSettings | None = None) -> list:
     """Return the offline Feast objects in dependency-safe apply order."""
     settings = settings or get_app_settings()
-    entities, sources, offline_views, _ = _reload_feast_repo_modules(settings)
-    return [
-        entities.customer,
-        entities.article,
-        entities.customer_session,
-        sources.point_in_time_training_dataset_source,
-        offline_views.customer_profile_base,
-        offline_views.product_catalog_base,
-        offline_views.customer_activity_base,
-        offline_views.article_demand_base,
-        offline_views.customer_article_affinity_base,
-        offline_views.customer_profile_features,
-        offline_views.article_catalog_features,
-        offline_views.customer_activity_features,
-        offline_views.article_demand_features,
-        offline_views.customer_article_affinity_features,
-    ]
+    _reload_feast_repo_modules(settings)
+    from feast_repo.registry import offline_objects
+
+    return offline_objects()
 
 
 def online_feast_repo_objects(*, settings: AppSettings | None = None) -> list:
     """Return the online Feast objects in dependency-safe apply order."""
     settings = settings or get_app_settings()
-    _, _, _, online_views = _reload_feast_repo_modules(settings)
-    return [
-        online_views.session_intent_push_source,
-        online_views.customer_realtime_push_source,
-        online_views.article_realtime_push_source,
-        online_views.session_intent_features,
-        online_views.customer_realtime_features,
-        online_views.article_realtime_features,
-    ]
+    _reload_feast_repo_modules(settings)
+    from feast_repo.registry import online_objects
+
+    return online_objects()
 
 
 def feast_repo_objects(
@@ -114,4 +96,3 @@ def parse_feast_end_date(value: str) -> datetime:
     if parsed.tzinfo is None:
         return parsed.replace(tzinfo=timezone.utc)
     return parsed
-
