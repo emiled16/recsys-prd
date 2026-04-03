@@ -1,7 +1,7 @@
 # Simulated Event Contract
 
 ## Purpose
-This document defines the local event schemas used to simulate online behavior from normalized H&M datasets. These schemas are the contract for synthetic generation, replay, validation, and future Kafka topic integration.
+This document defines the local event schemas used to simulate online behavior from normalized H&M datasets. These schemas are the simulator-owned contract for synthetic generation, replay, validation, and future Kafka topic integration.
 
 ## Topic Boundaries
 
@@ -67,6 +67,21 @@ Ordering rules:
 - Replay batches are written under `data/events/replay_batches/`.
 - Each topic has its own JSON Lines file.
 - A replay manifest records source inputs, row counts, and the generation timestamp.
+- `simulator/` owns replay-batch generation and manifest writing.
+- `backend/` consumes replay batches through these topic files or equivalent broker topics without importing simulator implementation details.
+
+## Replay Manifest Contract
+- `manifest.json` is written beside the replay topic files.
+- The manifest must include `generated_at_utc`.
+- The manifest must include one entry per topic with:
+  - `path`
+  - `row_count`
+- Topic file rows must remain sorted by `(event_time, event_id)` so backend consumers and validators can replay deterministically.
+
+## Boundary Rules
+- The simulator may read normalized datasets to derive synthetic traffic.
+- The backend may consume `interaction_events` and `catalog_events` payloads, but it must treat the payload schema and manifest as the public handoff.
+- Future non-simulator producers must emit the same topic contract if they are intended to replace local fake traffic.
 
 ## Acceptance Criteria
 - Interaction and catalog schemas are explicit enough to drive tasks `T13` through `T16`.

@@ -88,7 +88,10 @@ class PathSettings(BaseModel):
             embeddings_root=_resolve_path("RECSYS_PRD_EMBEDDINGS_ROOT", data_root / "embeddings"),
             indexes_root=_resolve_path("RECSYS_PRD_INDEXES_ROOT", data_root / "indexes"),
             models_root=_resolve_path("RECSYS_PRD_MODELS_ROOT", data_root / "models"),
-            feast_repo_root=_resolve_path("RECSYS_PRD_FEAST_REPO_ROOT", backend_root / "feast_repo"),
+            feast_repo_root=_resolve_path(
+                "RECSYS_PRD_FEAST_REPO_ROOT",
+                backend_root / "feast_repo",
+            ),
         )
 
 
@@ -103,7 +106,7 @@ class RedisSettings(BaseModel):
 
 
 class BrokerSettings(BaseModel):
-    bootstrap_servers: str = "127.0.0.1:19092"
+    bootstrap_servers: str = "127.0.0.1:9092"
     interactions_topic: str = "interaction_events"
     catalog_topic: str = "catalog_events"
 

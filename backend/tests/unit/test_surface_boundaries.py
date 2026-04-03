@@ -1,0 +1,165 @@
+from __future__ import annotations
+
+import csv
+import shutil
+import tempfile
+import unittest
+from pathlib import Path
+
+from pipelines.normalization import run_hm_normalization
+from pipelines.training_dataset import build_point_in_time_training_dataset
+from simulator.replay import publish_local_replay
+
+from recsys_prd.features.parity_validation import validate_feature_parity_and_freshness
+from recsys_prd.features.streaming_features import compute_online_feature_store
+
+
+class SurfaceBoundaryTests(unittest.TestCase):
+    def setUp(self) -> None:
+        self.tmp_dir = tempfile.TemporaryDirectory()
+        self.root = Path(self.tmp_dir.name)
+        self.raw_root = self.root / "raw" / "hm"
+        self.normalized_root = self.root / "normalized"
+        self.events_root = self.root / "events"
+        self.features_root = self.root / "features"
+        self.reports_root = self.root / "reports"
+        self._write_raw_fixture()
+
+    def tearDown(self) -> None:
+        shutil.rmtree(self.root, ignore_errors=True)
+        self.tmp_dir.cleanup()
+
+    def test_simulator_replay_feeds_backend_online_features(self) -> None:
+        run_hm_normalization(raw_root=self.raw_root, normalized_root=self.normalized_root)
+        publish_local_replay(normalized_root=self.normalized_root, events_root=self.events_root)
+
+        outputs = compute_online_feature_store(
+            events_root=self.events_root,
+            store_root=self.features_root / "online_bootstrap",
+        )
+
+        self.assertTrue(outputs["session_intent_features"].exists())
+        self.assertTrue(outputs["customer_realtime_features"].exists())
+        self.assertTrue(outputs["article_realtime_features"].exists())
+
+    def test_pipeline_training_dataset_feeds_backend_parity_validation(self) -> None:
+        run_hm_normalization(raw_root=self.raw_root, normalized_root=self.normalized_root)
+        publish_local_replay(normalized_root=self.normalized_root, events_root=self.events_root)
+        build_point_in_time_training_dataset(
+            normalized_root=self.normalized_root,
+            features_root=self.features_root / "offline",
+        )
+        compute_online_feature_store(
+            events_root=self.events_root,
+            store_root=self.features_root / "online_bootstrap",
+        )
+
+        result = validate_feature_parity_and_freshness(
+            features_root=self.features_root,
+            reports_root=self.reports_root,
+        )
+
+        self.assertTrue(result["ok"])
+        self.assertTrue(
+            (self.reports_root / "data_quality" / "feature_parity_and_freshness.json").exists()
+        )
+
+    def _write_raw_fixture(self) -> None:
+        articles_dir = self.raw_root / "articles"
+        customers_dir = self.raw_root / "customers"
+        transactions_dir = self.raw_root / "transactions"
+        images_dir = self.raw_root / "images" / "108"
+        for directory in [articles_dir, customers_dir, transactions_dir, images_dir]:
+            directory.mkdir(parents=True, exist_ok=True)
+
+        self._write_csv(
+            articles_dir / "articles.csv",
+            [
+                "article_id",
+                "product_code",
+                "prod_name",
+                "product_type_name",
+                "product_group_name",
+                "graphical_appearance_name",
+                "colour_group_name",
+                "perceived_colour_value_name",
+                "perceived_colour_master_name",
+                "department_name",
+                "index_name",
+                "index_group_name",
+                "section_name",
+                "garment_group_name",
+                "detail_desc",
+            ],
+            [
+                {
+                    "article_id": "108775015",
+                    "product_code": "108775",
+                    "prod_name": "Summer Dress",
+                    "product_type_name": "dress",
+                    "product_group_name": "garment upper body",
+                    "graphical_appearance_name": "solid",
+                    "colour_group_name": "light beige",
+                    "perceived_colour_value_name": "light",
+                    "perceived_colour_master_name": "beige",
+                    "department_name": "ladies dresses",
+                    "index_name": "ladieswear",
+                    "index_group_name": "ladieswear",
+                    "section_name": "womens everyday collection",
+                    "garment_group_name": "dresses",
+                    "detail_desc": "airy cotton dress",
+                }
+            ],
+        )
+        self._write_csv(
+            customers_dir / "customers.csv",
+            [
+                "customer_id",
+                "FN",
+                "Active",
+                "club_member_status",
+                "fashion_news_frequency",
+                "age",
+                "postal_code",
+            ],
+            [
+                {
+                    "customer_id": "0001",
+                    "FN": "1",
+                    "Active": "1",
+                    "club_member_status": "active",
+                    "fashion_news_frequency": "regularly",
+                    "age": "34",
+                    "postal_code": "12345",
+                }
+            ],
+        )
+        self._write_csv(
+            transactions_dir / "transactions_train.csv",
+            ["t_dat", "customer_id", "article_id", "price", "sales_channel_id"],
+            [
+                {
+                    "t_dat": "2020-09-20",
+                    "customer_id": "0001",
+                    "article_id": "108775015",
+                    "price": "29.99",
+                    "sales_channel_id": "2",
+                }
+            ],
+        )
+        (images_dir / "108775015.jpg").write_text("jpg-data", encoding="utf-8")
+
+    def _write_csv(
+        self,
+        path: Path,
+        fieldnames: list[str],
+        rows: list[dict[str, str]],
+    ) -> None:
+        with path.open("w", encoding="utf-8", newline="") as handle:
+            writer = csv.DictWriter(handle, fieldnames=fieldnames)
+            writer.writeheader()
+            writer.writerows(rows)
+
+
+if __name__ == "__main__":
+    unittest.main()

@@ -1,7 +1,7 @@
 [tool.poetry]
 name = "recsys-prd-backend"
 version = "0.1.0"
-description = "Backend services and pipelines for the multimodal recommendation platform"
+description = "Backend API and integration services for the multimodal recommendation platform"
 authors = ["emdim"]
 readme = "../README.md"
 packages = [{ include = "recsys_prd" }]
@@ -19,7 +19,6 @@ prometheus-client = "^0.24.1"
 confluent-kafka = "^2.13.2"
 xgboost = "^3.2.0"
 feast = {version = "^0.61.0", extras = ["redis"]}
-dagster = {version = "^1.11.11", python = ">=3.13,<3.15"}
 
 [tool.poetry.group.dev.dependencies]
 pytest = "^8.3.5"
@@ -28,7 +27,7 @@ ruff = "^0.11.4"
 [tool.pytest.ini_options]
 testpaths = ["tests"]
 python_files = ["test_*.py"]
-pythonpath = ["."]
+pythonpath = [".", ".."]
 
 [tool.ruff]
 target-version = "py313"

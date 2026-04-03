@@ -107,6 +107,7 @@ These remain batch or snapshot inputs and can be joined at inference from cached
 - Online feature names should map cleanly to the offline logical equivalents where the semantics overlap.
 - When freshness-driven deviations exist, the naming should make the realtime scope explicit, for example `_rt`.
 - Missing online features must have deterministic fallback behavior at inference time.
+- Backend consumers should derive these online features from documented replay or broker payloads rather than simulator-private helpers.
 
 ## Acceptance Criteria
 - The required online feature sets, freshness targets, and streaming inputs are explicit.

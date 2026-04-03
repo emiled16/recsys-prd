@@ -28,11 +28,7 @@ from recsys_prd.retrieval.evaluation import OfflineRetrievalEvaluator
 from recsys_prd.retrieval.vector_index import build_vector_indexes
 from recsys_prd.services.mlflow_store import probe_mlflow_tracking
 from recsys_prd.services.qdrant_store import ensure_qdrant_connection, load_qdrant_indexes
-from recsys_prd.services.redpanda import (
-    KafkaReplayPublisher,
-    bootstrap_redpanda_topics,
-    validate_broker_replay,
-)
+from recsys_prd.services.redpanda import KafkaReplayPublisher, validate_broker_replay
 from recsys_prd.validation.hm_normalized import validate_hm_normalized
 
 
@@ -70,10 +66,6 @@ def build_parser() -> argparse.ArgumentParser:
     subparsers.add_parser(
         "validate-hm-events",
         help="Validate generated local replay batches.",
-    )
-    subparsers.add_parser(
-        "bootstrap-redpanda-topics",
-        help="Create the local Redpanda topics needed by replay and serving.",
     )
     subparsers.add_parser(
         "build-pit-training-set",
@@ -234,10 +226,6 @@ def run_event_command(args: argparse.Namespace, settings: AppSettings) -> int:
     if args.command == "validate-hm-events":
         result = validate_local_replay(settings=settings)
         print(f"Validation OK: {result['ok']}")
-        return 0
-    if args.command == "bootstrap-redpanda-topics":
-        result = bootstrap_redpanda_topics(settings=settings)
-        print(result)
         return 0
     if args.command == "publish-replay-to-kafka":
         manifest_path = settings.paths.events_root / "replay_batches" / "manifest.json"
