@@ -15,7 +15,11 @@ from pipelines.normalization_pkg.contracts import CUSTOMER_FIELDS
 
 def normalize_customers(raw_customers_path: Path) -> list[dict[str, str]]:
     """Normalize raw customer rows into the customer contract."""
-    rows = read_csv_rows(raw_customers_path)
+    return normalize_customer_rows(read_csv_rows(raw_customers_path))
+
+
+def normalize_customer_rows(rows: list[dict[str, str]]) -> list[dict[str, str]]:
+    """Normalize raw customer rows already loaded into memory."""
     normalized: list[dict[str, str]] = []
     for row in rows:
         normalized.append(
@@ -34,6 +38,3 @@ def normalize_customers(raw_customers_path: Path) -> list[dict[str, str]]:
 
 def customer_schema() -> list[str]:
     return CUSTOMER_FIELDS.copy()
-
-
-__all__ = ["customer_schema", "normalize_customers"]

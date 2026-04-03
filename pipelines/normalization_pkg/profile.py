@@ -33,6 +33,3 @@ def build_profile(
         "null_rates": null_rates,
         "schema": fieldnames,
     }
-
-
-__all__ = ["build_profile"]

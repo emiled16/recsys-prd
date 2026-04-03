@@ -10,7 +10,11 @@ from pipelines.normalization_pkg.contracts import IMAGE_FIELDS, PRODUCT_FIELDS
 
 def normalize_products(raw_articles_path: Path) -> list[dict[str, str]]:
     """Normalize raw article rows into the product contract."""
-    rows = read_csv_rows(raw_articles_path)
+    return normalize_product_rows(read_csv_rows(raw_articles_path))
+
+
+def normalize_product_rows(rows: list[dict[str, str]]) -> list[dict[str, str]]:
+    """Normalize raw article rows already loaded into memory."""
     normalized: list[dict[str, str]] = []
     for row in rows:
         normalized.append(
@@ -57,11 +61,3 @@ def product_schema() -> list[str]:
 
 def image_schema() -> list[str]:
     return IMAGE_FIELDS.copy()
-
-
-__all__ = [
-    "build_product_images_manifest",
-    "image_schema",
-    "normalize_products",
-    "product_schema",
-]

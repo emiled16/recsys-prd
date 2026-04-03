@@ -12,7 +12,11 @@ from pipelines.normalization_pkg.contracts import TRANSACTION_FIELDS
 
 def normalize_transactions(raw_transactions_path: Path) -> list[dict[str, str]]:
     """Normalize raw transaction rows into deterministic event rows."""
-    rows = read_csv_rows(raw_transactions_path)
+    return normalize_transaction_rows(read_csv_rows(raw_transactions_path))
+
+
+def normalize_transaction_rows(rows: list[dict[str, str]]) -> list[dict[str, str]]:
+    """Normalize raw transaction rows already loaded into memory."""
     normalized: list[dict[str, str]] = []
     for row in rows:
         event_time = _normalize_event_time(row.get("t_dat"))
@@ -60,6 +64,3 @@ def _build_event_id(
 ) -> str:
     raw_key = "|".join([event_time, customer_id, article_id, price, sales_channel_id])
     return hashlib.sha1(raw_key.encode("utf-8")).hexdigest()
-
-
-__all__ = ["normalize_transactions", "transaction_schema"]

@@ -47,13 +47,3 @@ IMAGE_FIELDS = [
 REQUIRED_PRODUCT_FIELDS = ["article_id", "prod_name", "product_group_name"]
 REQUIRED_CUSTOMER_FIELDS = ["customer_id"]
 REQUIRED_TRANSACTION_FIELDS = ["event_id", "event_time", "customer_id", "article_id", "price"]
-
-__all__ = [
-    "PRODUCT_FIELDS",
-    "CUSTOMER_FIELDS",
-    "TRANSACTION_FIELDS",
-    "IMAGE_FIELDS",
-    "REQUIRED_PRODUCT_FIELDS",
-    "REQUIRED_CUSTOMER_FIELDS",
-    "REQUIRED_TRANSACTION_FIELDS",
-]
