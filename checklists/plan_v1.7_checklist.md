@@ -12,7 +12,7 @@
 
 ## Milestone M3: Move Normalization and Offline Validation Out of the Backend Package
 - [x] T137: Create pipeline-owned normalization packages for customers, products, transactions, and shared cleaning logic
-- [ ] T138: Reimplement normalization execution on Spark while preserving the normalized artifact contract
+- [x] T138: Reimplement normalization execution on Spark while preserving the normalized artifact contract
 - [ ] T139: Move normalized-data validation into a pipeline-owned validation package with Spark-aware checks
 
 ## Milestone M4: Move Simulator and Replay Concerns Fully Out of the Backend Package

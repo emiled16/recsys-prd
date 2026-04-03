@@ -2,8 +2,10 @@ from __future__ import annotations
 
 from pathlib import Path
 
+from recsys_prd.io.csv_ops import write_csv_rows
 from recsys_prd.io.json_ops import write_json
 from recsys_prd.io.tabular_ops import write_dual_tabular_outputs
+from pipelines.spark.io import write_string_rows_as_parquet
 
 from pipelines.normalization.profile import build_profile
 
@@ -15,14 +17,27 @@ def write_dataset_bundle(
     fieldnames: list[str],
     rows: list[dict[str, str]],
     primary_key: str,
+    spark=None,
 ) -> Path:
     """Write a normalized dataset together with schema and profile metadata."""
-    dataset_path, csv_path = write_dual_tabular_outputs(
-        dataset_dir=dataset_dir,
-        dataset_filename=dataset_filename,
-        fieldnames=fieldnames,
-        rows=rows,
-    )
+    if spark is None:
+        dataset_path, csv_path = write_dual_tabular_outputs(
+            dataset_dir=dataset_dir,
+            dataset_filename=dataset_filename,
+            fieldnames=fieldnames,
+            rows=rows,
+        )
+    else:
+        dataset_stem = Path(dataset_filename).stem
+        dataset_path = dataset_dir / f"{dataset_stem}.parquet"
+        csv_path = dataset_dir / f"{dataset_stem}.csv"
+        write_string_rows_as_parquet(
+            spark,
+            path=dataset_path,
+            fieldnames=fieldnames,
+            rows=rows,
+        )
+        write_csv_rows(csv_path, fieldnames, rows)
     profile = build_profile(rows, fieldnames=fieldnames, primary_key=primary_key)
     write_json(
         dataset_dir / "schema.json",
