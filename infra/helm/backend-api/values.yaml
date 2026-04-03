@@ -1,0 +1,12 @@
+image:
+  repository: recsys-prd/backend-api
+  tag: latest
+
+service:
+  port: 8000
+
+env:
+  RECSYS_PRD_BROKER_BOOTSTRAP_SERVERS: redpanda:9092
+  RECSYS_PRD_REDIS_HOST: redis
+  RECSYS_PRD_QDRANT_HOST: qdrant
+  RECSYS_PRD_MLFLOW_TRACKING_URI: http://mlflow:5001

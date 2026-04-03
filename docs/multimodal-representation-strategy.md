@@ -1,7 +1,8 @@
 # Multimodal Representation Strategy
 
 ## Purpose
-This document defines how product text, images, and structured attributes are represented and combined for retrieval-ready embeddings.
+This document defines how product text, images, and structured attributes are represented and
+combined for retrieval-ready embeddings.
 
 The strategy is intentionally staged so the first implementation can ship usable retrieval artifacts without locking the project into an overly complex fusion architecture too early.
 
@@ -10,6 +11,40 @@ The strategy is intentionally staged so the first implementation can ship usable
 - use image embeddings to recover visual similarity not captured by taxonomy fields
 - retain structured catalog attributes as interpretable side information
 - support both retrieval and downstream ranking reuse
+- keep embedding rebuilds reproducible through explicit manifests, model metadata, and dataset digests
+
+## Production-Like Embedding Contract
+
+The retrieval stack now standardizes on a PyTorch-backed local projection path that behaves like a
+real embedding pipeline even when heavyweight pretrained weights are not installed in the workspace.
+
+### Default Local Model Choices
+- Text:
+  - logical model name: `torch_text_projection`
+  - version: `v1`
+  - default seed: `13`
+- Image:
+  - logical model name: `torch_image_projection`
+  - version: `v1`
+  - default seed: `29`
+- Fusion:
+  - late fusion over normalized text and image vectors
+  - lineage references to the upstream text and image artifact digests
+
+### Runtime Behavior
+- If `torch` is installed, vector projection uses a torch-backed matrix projection and normalization
+  path.
+- If `torch` is not installed, the same logical models fall back to a deterministic projection path
+  so manifests and tests remain reproducible.
+- The artifact contract records whether torch was available at build time.
+
+### Reproducibility Requirements
+- Persist dataset digests, normalized-root references, and generation timestamps in the embedding
+  manifest.
+- Record model name, model version, backend, projection seed, and per-record lineage digests.
+- Preserve separate text, image, and fused artifacts so downstream evaluation can measure modality
+  contribution and slice behavior.
+- Treat vector index rebuilds as derivatives that point back to a specific embedding manifest.
 
 ## Product-Side Modalities
 
@@ -83,8 +118,18 @@ The strategy is intentionally staged so the first implementation can ship usable
   - `article_id`
   - model name
   - model version
+  - backend runtime
   - modality availability flags
   - generation timestamp
+  - lineage digest and source dataset digest
+
+## Evaluation and Monitoring Expectations
+- Offline retrieval evaluation must emit global metrics plus slice metrics for image availability,
+  query-length buckets, and department-level behavior.
+- Promotion readiness should consider freshness of both embedding manifests and vector index
+  manifests.
+- Online monitoring should track fallback rate, null-result rate, and rollback recommendations
+  derived from exposure and event logs.
 
 ## Acceptance Criteria
 - The modality boundaries and fusion strategy are explicit.

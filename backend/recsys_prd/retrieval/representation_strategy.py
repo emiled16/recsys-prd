@@ -2,7 +2,6 @@ from __future__ import annotations
 
 from recsys_prd.retrieval.contracts import FusionStrategy, ModalitySpec
 
-
 TEXT_MODALITY = ModalitySpec(
     name="text",
     input_fields=(

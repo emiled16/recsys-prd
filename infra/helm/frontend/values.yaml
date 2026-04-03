@@ -1,0 +1,6 @@
+image:
+  repository: recsys-prd/frontend
+  tag: latest
+
+service:
+  port: 4173

@@ -1,0 +1,8 @@
+image:
+  repository: recsys-prd/simulator
+  tag: latest
+
+command:
+  - python
+  - -m
+  - simulator.replay

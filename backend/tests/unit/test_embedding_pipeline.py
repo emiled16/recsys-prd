@@ -100,6 +100,8 @@ class EmbeddingPipelineTests(unittest.TestCase):
         self.assertEqual(len(fused_records), 2)
         self.assertEqual(manifest["dimension"], EMBEDDING_DIMENSION)
         self.assertEqual(manifest["artifacts"]["image"]["row_count"], 1)
+        self.assertEqual(manifest["runtime"]["text"]["backend"], "torch_projection")
+        self.assertEqual(manifest["source"]["article_count"], 2)
 
         text_by_article = {record["article_id"]: record for record in text_records}
         fused_by_article = {record["article_id"]: record for record in fused_records}
@@ -125,6 +127,11 @@ class EmbeddingPipelineTests(unittest.TestCase):
             text_only_fused["structured_metadata"]["department_name"],
             "Ladies Tops",
         )
+        self.assertIn("artifact_digest", manifest["artifacts"]["text"])
+        self.assertEqual(
+            manifest["artifacts"]["fused"]["lineage"]["source_digest"],
+            manifest["source"]["digest"],
+        )
 
     def test_builds_artifacts_with_pluggable_embedders(self) -> None:
         outputs = build_embedding_artifacts(
@@ -145,6 +152,10 @@ class EmbeddingPipelineTests(unittest.TestCase):
         self.assertEqual(manifest["artifacts"]["image"]["dimension"], 2)
         self.assertEqual(manifest["artifacts"]["fused"]["dimension"], 3)
         self.assertEqual(len(fused_records[0]["vector"]), 3)
+        self.assertEqual(manifest["runtime"]["text"]["backend"], "FixedTextEmbedder")
+        self.assertEqual(
+            manifest["artifacts"]["text"]["lineage"]["normalized_root"], str(self.normalized_root)
+        )
 
     def _write_raw_fixture(self) -> None:
         articles_dir = self.raw_root / "articles"

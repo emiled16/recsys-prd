@@ -51,6 +51,7 @@ class MLflowRunLogger:
         metrics: dict[str, float],
         tags: dict[str, str],
         artifact_paths: list[Path],
+        lineage: dict[str, Any] | None = None,
     ) -> dict[str, str]:
         run = self.client.create_run(
             experiment_id="0",
@@ -58,6 +59,8 @@ class MLflowRunLogger:
         )
         for key, value in _flatten_mapping(params).items():
             self.client.log_param(run.info.run_id, key, value)
+        for key, value in _flatten_mapping(lineage or {}).items():
+            self.client.log_param(run.info.run_id, f"lineage.{key}", value)
         for key, value in _flatten_mapping(metrics).items():
             self.client.log_metric(run.info.run_id, key, float(value))
         for artifact_path in artifact_paths:

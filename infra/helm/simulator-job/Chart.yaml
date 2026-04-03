@@ -1,0 +1,6 @@
+apiVersion: v2
+name: simulator-job
+description: Simulator-owned synthetic traffic and replay job surface.
+type: application
+version: 0.1.0
+appVersion: "0.1.0"

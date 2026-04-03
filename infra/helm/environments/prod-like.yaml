@@ -1,0 +1,13 @@
+global:
+  imagePullPolicy: IfNotPresent
+  serviceOwnership:
+    redpanda: platform-managed
+    redis: platform-managed
+    qdrant: platform-managed
+    mlflow: platform-managed
+    observability: platform-managed
+  endpoints:
+    broker: kafka.production.svc.cluster.local:9092
+    redis: redis.production.svc.cluster.local:6379
+    qdrant: http://qdrant.production.svc.cluster.local:6333
+    mlflow: http://mlflow.production.svc.cluster.local:5001

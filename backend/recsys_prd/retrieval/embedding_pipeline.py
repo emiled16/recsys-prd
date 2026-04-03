@@ -8,10 +8,10 @@ from recsys_prd.events.io import write_jsonl
 from recsys_prd.features.static_lookups import load_image_manifest, load_product_catalog
 from recsys_prd.io.json_ops import write_json
 from recsys_prd.retrieval.embedders import (
-    HashingImageEmbedder,
-    HashingTextEmbedder,
     ImageEmbedder,
     TextEmbedder,
+    TorchImageEmbedder,
+    TorchTextEmbedder,
 )
 from recsys_prd.retrieval.embedding_support import (
     EMBEDDING_DIMENSION,
@@ -19,6 +19,7 @@ from recsys_prd.retrieval.embedding_support import (
     FUSION_MODEL_VERSION,
     embedding_record,
     fuse_vectors,
+    stable_digest,
 )
 from recsys_prd.retrieval.representation_strategy import (
     IMAGE_MODALITY,
@@ -45,8 +46,9 @@ def build_embedding_artifacts(
     generated_at = datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
 
     article_rows = _build_article_rows(products=products, image_manifest=image_manifest)
-    text_embedder = text_embedder or HashingTextEmbedder(dimension=EMBEDDING_DIMENSION)
-    image_embedder = image_embedder or HashingImageEmbedder(dimension=EMBEDDING_DIMENSION)
+    text_embedder = text_embedder or TorchTextEmbedder(dimension=EMBEDDING_DIMENSION)
+    image_embedder = image_embedder or TorchImageEmbedder(dimension=EMBEDDING_DIMENSION)
+    source_digest = stable_digest(article_rows)
 
     text_record_models = text_embedder.embed_articles(article_rows, generated_at=generated_at)
     image_input_rows = [row for row in article_rows if row.get("image_path")]
@@ -62,6 +64,7 @@ def build_embedding_artifacts(
                 generated_at=generated_at,
                 model_name=FUSION_MODEL_NAME,
                 model_version=FUSION_MODEL_VERSION,
+                backend="torch_projection",
                 modality="fused",
                 strategy_name=LATE_FUSION_MULTIMODAL.name,
                 vector=fuse_vectors(
@@ -73,6 +76,15 @@ def build_embedding_artifacts(
                     "text": True,
                     "image": image_record is not None,
                     "structured": True,
+                },
+                lineage={
+                    "backend": "torch_projection",
+                    "generated_at_utc": generated_at,
+                    "source_digest": source_digest,
+                    "source_text_embedding_digest": stable_digest(text_record.model_dump()),
+                    "source_image_embedding_digest": (
+                        stable_digest(image_record.model_dump()) if image_record is not None else ""
+                    ),
                 },
             )
         )
@@ -93,6 +105,15 @@ def build_embedding_artifacts(
         manifest_path,
         {
             "generated_at_utc": generated_at,
+            "source": {
+                "normalized_root": str(normalized_root),
+                "article_count": len(article_rows),
+                "digest": source_digest,
+            },
+            "runtime": {
+                "text": _runtime_metadata(text_embedder),
+                "image": _runtime_metadata(image_embedder),
+            },
             "dimension": _artifact_dimension(fused_record_models),
             "artifacts": {
                 "text": _artifact_manifest(
@@ -100,9 +121,16 @@ def build_embedding_artifacts(
                     row_count=len(text_records),
                     model_name=text_record_models[0].model_name if text_record_models else "",
                     model_version=text_record_models[0].model_version if text_record_models else "",
+                    backend=text_record_models[0].backend if text_record_models else "",
                     strategy_name=TEXT_FIRST_BASELINE.name,
                     required_modalities=TEXT_FIRST_BASELINE.required_modalities,
                     dimension=_artifact_dimension(text_record_models),
+                    artifact_digest=stable_digest(text_records),
+                    lineage={
+                        "normalized_root": str(normalized_root),
+                        "source_digest": source_digest,
+                        "generated_at_utc": generated_at,
+                    },
                 ),
                 "image": _artifact_manifest(
                     path=image_path,
@@ -111,18 +139,34 @@ def build_embedding_artifacts(
                     model_version=(
                         image_record_models[0].model_version if image_record_models else ""
                     ),
+                    backend=image_record_models[0].backend if image_record_models else "",
                     strategy_name=LATE_FUSION_MULTIMODAL.name,
                     required_modalities=(IMAGE_MODALITY.name, STRUCTURED_MODALITY.name),
                     dimension=_artifact_dimension(image_record_models),
+                    artifact_digest=stable_digest(image_records),
+                    lineage={
+                        "normalized_root": str(normalized_root),
+                        "source_digest": source_digest,
+                        "generated_at_utc": generated_at,
+                    },
                 ),
                 "fused": _artifact_manifest(
                     path=fused_path,
                     row_count=len(fused_records),
                     model_name=FUSION_MODEL_NAME,
                     model_version=FUSION_MODEL_VERSION,
+                    backend="torch_projection",
                     strategy_name=LATE_FUSION_MULTIMODAL.name,
                     required_modalities=LATE_FUSION_MULTIMODAL.required_modalities,
                     dimension=_artifact_dimension(fused_record_models),
+                    artifact_digest=stable_digest(fused_records),
+                    lineage={
+                        "normalized_root": str(normalized_root),
+                        "source_digest": source_digest,
+                        "generated_at_utc": generated_at,
+                        "source_text_embedding_digest": stable_digest(text_records),
+                        "source_image_embedding_digest": stable_digest(image_records),
+                    },
                 ),
             },
         },
@@ -156,18 +200,24 @@ def _artifact_manifest(
     row_count: int,
     model_name: str,
     model_version: str,
+    backend: str,
     strategy_name: str,
     required_modalities: tuple[str, ...],
     dimension: int,
+    artifact_digest: str,
+    lineage: dict[str, object],
 ) -> dict[str, object]:
     return {
         "path": str(path),
         "row_count": row_count,
         "model_name": model_name,
         "model_version": model_version,
+        "backend": backend,
         "strategy_name": strategy_name,
         "required_modalities": list(required_modalities),
         "dimension": dimension,
+        "artifact_digest": artifact_digest,
+        "lineage": lineage,
     }
 
 
@@ -175,3 +225,10 @@ def _artifact_dimension(records: list) -> int:
     if not records:
         return 0
     return records[0].vector_dimension
+
+
+def _runtime_metadata(embedder: object) -> dict[str, object]:
+    runtime_metadata = getattr(embedder, "runtime_metadata", None)
+    if callable(runtime_metadata):
+        return runtime_metadata()
+    return {"backend": embedder.__class__.__name__}

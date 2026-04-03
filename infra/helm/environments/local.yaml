@@ -1,0 +1,13 @@
+global:
+  imagePullPolicy: IfNotPresent
+  serviceOwnership:
+    redpanda: external-shared
+    redis: external-shared
+    qdrant: external-shared
+    mlflow: external-shared
+    observability: external-shared
+  endpoints:
+    broker: redpanda:9092
+    redis: redis:6379
+    qdrant: http://qdrant:6333
+    mlflow: http://mlflow:5001

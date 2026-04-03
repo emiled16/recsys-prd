@@ -126,6 +126,20 @@ Each output must publish:
 - uniqueness guarantees for its primary key,
 - null-rate summary for important fields.
 
+## Surface Ownership
+- `pipelines/` owns normalization and publication of the normalized entities above.
+- `simulator/` may read normalized outputs to derive replay batches but must not mutate them.
+- `backend/` may read normalized outputs only through documented file paths and schemas; it must not rely on pipelines-private helper functions as the contract.
+
+## Backend-Visible Pipeline Outputs
+The backend may consume these pipeline-published artifacts:
+- normalized entity datasets under `data/normalized/`
+- point-in-time training datasets under `data/features/offline/training_dataset/`
+- ranking datasets under `data/models/training_sets/ranking_dataset/`
+- promoted model registry artifacts under `data/models/registry/`
+
+The backend must treat file paths, field names, and documented manifests as the stable handoff.
+
 ## Acceptance Criteria
 - All required source tables and image assets are mapped into documented contracts.
 - Primary keys, required fields, and quality assumptions are explicit.

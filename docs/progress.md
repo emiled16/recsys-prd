@@ -85,3 +85,64 @@ This is the append-only execution log for the recommendation system project. Eac
 [2026-04-02 03:16:00] [plan v1.4] [DONE] T64: Updated ranking training to emit MLflow run metadata, params, metrics, and artifacts while preserving local manifests and offline fallback retrieval
 [2026-04-02 03:24:00] [plan v1.4] [START] T65: Implement an MLflow model registrar for trained ranking models
 [2026-04-02 03:24:00] [plan v1.4] [DONE] T65: Updated ranking registration to call the MLflow model registrar and persist MLflow model-version metadata alongside local registry lineage
+
+---
+## Plan v1.6
+[2026-04-02 17:50:12] [plan v1.6] [START] T102: Publish a runtime ownership matrix for backend, simulator, pipelines, orchestration, frontend, infra, and ops
+[2026-04-02 17:50:12] [plan v1.6] [START] T103: Move local shared-service definitions into an infra-owned local runtime layout
+[2026-04-02 17:50:12] [plan v1.6] [START] T104: Create a dedicated orchestration workspace for Dagster user code, webserver, daemon, and workspace configuration
+[2026-04-02 17:50:12] [plan v1.6] [START] T105: Define local development process boundaries for backend, frontend, orchestration, and infra
+[2026-04-02 17:50:12] [plan v1.6] [START] T106: Refactor backend code so broker, orchestration, and service bootstrap concerns are configuration-driven integrations only
+[2026-04-02 17:50:12] [plan v1.6] [DONE] T102: Added a runtime ownership matrix and M1 topology guidance to the system design, decisions log, and repo README
+[2026-04-02 17:50:12] [plan v1.6] [DONE] T103: Created an infra-owned local runtime layout with canonical Compose and broker bootstrap assets under infra/local
+[2026-04-02 17:50:12] [plan v1.6] [DONE] T104: Moved Dagster definitions into the top-level orchestration project and updated orchestration workspace documentation
+[2026-04-02 17:50:12] [plan v1.6] [DONE] T105: Published explicit local run boundaries for backend, orchestration, infra, and the future frontend workflow
+[2026-04-02 17:50:12] [plan v1.6] [DONE] T106: Removed backend-owned runtime bootstrap CLI and Dagster module ownership, and aligned backend broker defaults with external local infra access
+[2026-04-02 18:45:48] [plan v1.6] [START] T107: Create a dedicated simulator package for synthetic events, replay manifests, and fake traffic generation
+[2026-04-02 18:45:48] [plan v1.6] [START] T108: Create a dedicated pipelines package for normalization, Feast materialization, PIT joins, feature backfills, and ranking dataset assembly
+[2026-04-02 18:45:48] [plan v1.6] [START] T109: Define stable storage and schema contracts between simulator outputs, pipeline outputs, and backend inputs
+[2026-04-02 18:45:48] [plan v1.6] [START] T110: Preserve point-in-time correctness across the package split
+[2026-04-02 18:45:48] [plan v1.6] [START] T111: Add integration tests that validate simulator-to-backend and pipelines-to-backend boundaries
+[2026-04-02 18:45:48] [plan v1.6] [DONE] T107: Added top-level simulator-owned replay, event-generation, validation, and contract modules with backend compatibility wrappers
+[2026-04-02 18:45:48] [plan v1.6] [DONE] T108: Added a top-level pipelines package for normalization, PIT dataset building, Feast batch flows, and ranking-dataset assembly with backend compatibility wrappers
+[2026-04-02 18:45:48] [plan v1.6] [DONE] T109: Updated the data, dataset, and event contracts to define artifact ownership and stable simulator/pipelines-to-backend handoffs
+[2026-04-02 18:45:48] [plan v1.6] [DONE] T110: Documented the package-split PIT invariants and preserved the existing leakage-safe builders behind the pipelines-owned boundary
+[2026-04-02 18:45:48] [plan v1.6] [DONE] T111: Added boundary tests that exercise simulator replay into backend online features and pipelines outputs into backend parity validation
+[2026-04-02 21:28:06] [plan v1.6] [START] T112: Audit the current API endpoints against realistic application test journeys
+[2026-04-02 21:28:06] [plan v1.6] [START] T113: Define and implement the missing public API contracts for event tracking, readiness, and test-friendly diagnostics
+[2026-04-02 21:28:06] [plan v1.6] [START] T114: Add deterministic API-level smoke, contract, and end-to-end tests around the current recommendation flow
+[2026-04-02 21:28:06] [plan v1.6] [START] T115: Define the frontend-to-backend contract for recommendation requests, event emission, and session handling
+[2026-04-02 21:28:06] [plan v1.6] [DONE] T112: Audited the public FastAPI surface and documented the minimum application-facing endpoints for liveness, readiness, diagnostics, recommendations, tracking, and metrics
+[2026-04-02 21:28:06] [plan v1.6] [DONE] T113: Added `/readyz`, `/diagnostics`, and `/events` with explicit request and response contracts for local application testing
+[2026-04-02 21:28:06] [plan v1.6] [DONE] T114: Added deterministic API smoke and contract coverage, including in-process smoke reporting for health, readiness, and diagnostics
+[2026-04-02 21:28:06] [plan v1.6] [DONE] T115: Defined the frontend-to-backend contract for recommendation requests, tracking events, and session correlation
+[2026-04-02 21:28:06] [plan v1.6] [START] T116: Scaffold a top-level frontend workspace that runs outside Docker Compose with Vite for local development
+[2026-04-02 21:28:06] [plan v1.6] [START] T117: Define a frontend API client layer that uses the browser `fetch` API or a thin wrapper rather than Axios
+[2026-04-02 21:28:06] [plan v1.6] [START] T118: Add a local end-to-end developer workflow that combines Vite, the backend API, and shared infra services
+[2026-04-02 21:28:06] [plan v1.6] [DONE] T116: Added a top-level Vite frontend workspace with environment defaults and a lightweight demo application
+[2026-04-02 21:28:06] [plan v1.6] [DONE] T117: Standardized frontend API calls on a thin browser `fetch` client instead of Axios
+[2026-04-02 21:28:06] [plan v1.6] [DONE] T118: Added a local developer workflow script and updated the repo runbooks for frontend, backend, orchestration, and shared infra
+[2026-04-02 21:28:06] [plan v1.6] [START] T119: Define the production-like embedding strategy, model choices, and reproducibility contract
+[2026-04-02 21:28:06] [plan v1.6] [START] T120: Implement PyTorch-backed text and image embedding jobs with stable artifact manifests
+[2026-04-02 21:28:06] [plan v1.6] [START] T121: Add experiment tracking and lineage for embedding runs, models, datasets, and indexes
+[2026-04-02 21:28:06] [plan v1.6] [START] T122: Expand offline evaluation for retrieval quality, embedding quality, and slice behavior using real model outputs
+[2026-04-02 21:28:06] [plan v1.6] [START] T123: Define online monitoring for embedding freshness, vector index health, retrieval drift, and model regressions
+[2026-04-02 21:28:06] [plan v1.6] [DONE] T119: Published the PyTorch-based embedding strategy, runtime behavior, reproducibility contract, and lineage expectations for retrieval artifacts
+[2026-04-02 21:28:06] [plan v1.6] [DONE] T120: Replaced the brittle embedding default with a torch-backed projection path that emits stable manifests and per-record lineage metadata
+[2026-04-02 21:28:06] [plan v1.6] [DONE] T121: Extended MLflow lineage logging and embedding/index manifests so retrieval artifacts capture dataset, runtime, and downstream index provenance
+[2026-04-02 21:28:06] [plan v1.6] [DONE] T122: Expanded offline retrieval evaluation to include slice metrics, index freshness signals, and promotion-readiness summaries
+[2026-04-02 21:28:06] [plan v1.6] [DONE] T123: Added online guardrail metrics and observability hooks for fallback rate, null-result rate, rollback recommendation, and retrieval promotion readiness
+[2026-04-02 21:28:06] [plan v1.6] [START] T124: Consolidate reproducibility requirements for ranking training, embedding generation, feature inputs, and evaluation runs
+[2026-04-02 21:28:06] [plan v1.6] [START] T125: Add promotion gates that combine offline evaluation thresholds, smoke checks, and experiment readiness criteria
+[2026-04-02 21:28:06] [plan v1.6] [START] T126: Define the online evaluation loop for exposure logging, user events, guardrails, and rollback decisions
+[2026-04-02 21:28:06] [plan v1.6] [START] T127: Refactor orchestration workflows so Dagster schedules and jobs cover simulator runs, batch pipelines, model rebuilds, evaluation, and promotion checks
+[2026-04-02 21:28:06] [plan v1.6] [DONE] T124: Consolidated reproducibility through shared artifact schemas, manifest lineage, MLflow parameter logging, and repo-level contract documentation
+[2026-04-02 21:28:06] [plan v1.6] [DONE] T125: Added an explicit promotion-gate report that combines retrieval readiness, ranking metrics, API smoke checks, and online guardrails
+[2026-04-02 21:28:06] [plan v1.6] [DONE] T126: Added online evaluation reporting over exposure and tracking logs with CTR, fallback, null-result, and rollback guardrails
+[2026-04-02 21:28:06] [plan v1.6] [DONE] T127: Expanded Dagster assets, jobs, and schedules to cover simulator replay, feature refresh, embedding rebuilds, offline evaluation, API smoke checks, and promotion gating
+[2026-04-02 21:28:06] [plan v1.6] [START] T128: Create an infra layout for Helm charts covering backend API, orchestration, simulator jobs, pipelines jobs, and frontend delivery
+[2026-04-02 21:28:06] [plan v1.6] [START] T129: Define environment-specific values and ownership for shared dependencies such as Redpanda, Redis, Qdrant, MLflow, and observability
+[2026-04-02 21:28:06] [plan v1.6] [START] T130: Publish the end-to-end topology showing how frontend, backend, simulator, pipelines, orchestration, and shared services interact
+[2026-04-02 21:28:06] [plan v1.6] [DONE] T128: Added `infra/helm/` charts for backend API, frontend, orchestration, simulator jobs, and pipelines jobs
+[2026-04-02 21:28:06] [plan v1.6] [DONE] T129: Added environment overlays and infra documentation that define shared dependency ownership across local, demo, and production-like targets
+[2026-04-02 21:28:06] [plan v1.6] [DONE] T130: Updated the README, system design, contracts, and infra docs with the end-to-end runtime topology and local versus production-like deployment model

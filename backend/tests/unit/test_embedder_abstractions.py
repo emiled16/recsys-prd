@@ -5,6 +5,8 @@ import unittest
 from recsys_prd.retrieval.embedders import (
     OpenClipImageEmbedder,
     SentenceTransformerTextEmbedder,
+    TorchImageEmbedder,
+    TorchTextEmbedder,
 )
 
 
@@ -107,6 +109,41 @@ class EmbedderAbstractionTests(unittest.TestCase):
         self.assertEqual(records[0].source_path, "/tmp/a.jpg")
         self.assertEqual(records[1].vector_dimension, 2)
         self.assertAlmostEqual(records[1].vector[1], 0.8, places=5)
+
+    def test_torch_projection_embedders_emit_lineage_metadata(self) -> None:
+        text_embedder = TorchTextEmbedder(dimension=6, seed=7)
+        image_embedder = TorchImageEmbedder(dimension=6, seed=11)
+
+        text_records = text_embedder.embed_articles(
+            [
+                {
+                    "article_id": "1001",
+                    "prod_name": "Summer Dress",
+                    "product_type_name": "dress",
+                    "product_group_name": "garment upper body",
+                    "colour_group_name": "light beige",
+                    "department_name": "Ladies Dresses",
+                    "detail_desc": "airy cotton dress",
+                    "image_path": "/tmp/a.jpg",
+                }
+            ],
+            generated_at="2026-04-02T00:00:00Z",
+        )
+        image_records = image_embedder.embed_images(
+            [
+                {
+                    "article_id": "1001",
+                    "image_path": "/tmp/a.jpg",
+                    "department_name": "Ladies Dresses",
+                }
+            ],
+            generated_at="2026-04-02T00:00:00Z",
+        )
+
+        self.assertEqual(text_records[0].backend, "torch_projection")
+        self.assertIn("payload_digest", text_records[0].lineage)
+        self.assertEqual(image_records[0].backend, "torch_projection")
+        self.assertIn("projection_seed", image_records[0].lineage)
 
 
 if __name__ == "__main__":

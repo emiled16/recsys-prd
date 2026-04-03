@@ -69,6 +69,7 @@ class RecommendationService:
             response_id=response_id,
             assignment=assignment,
             request_payload=request.model_dump(),
+            response_payload=response.model_dump(),
             recommendation_payload=[item.model_dump() for item in response.recommendations],
         )
         return response

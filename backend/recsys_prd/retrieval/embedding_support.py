@@ -1,7 +1,9 @@
 from __future__ import annotations
 
 import hashlib
+import json
 import math
+from typing import Any
 
 from recsys_prd.retrieval.representation_strategy import (
     STRUCTURED_MODALITY,
@@ -24,11 +26,13 @@ def embedding_record(
     generated_at: str,
     model_name: str,
     model_version: str,
+    backend: str = "",
     modality: str,
     strategy_name: str,
     vector: list[float],
     structured_metadata: dict[str, str],
     modality_availability: dict[str, bool],
+    lineage: dict[str, Any] | None = None,
     source_path: str | None = None,
 ) -> EmbeddingArtifactRecord:
     return EmbeddingArtifactRecord(
@@ -36,12 +40,14 @@ def embedding_record(
         generated_at_utc=generated_at,
         model_name=model_name,
         model_version=model_version,
+        backend=backend,
         modality=modality,
         strategy_name=strategy_name,
         vector=vector,
         vector_dimension=len(vector),
         structured_metadata=structured_metadata,
         modality_availability=modality_availability,
+        lineage=lineage or {},
         source_path=source_path,
     )
 
@@ -125,3 +131,9 @@ def normalize(values: list[float]) -> list[float]:
     if norm == 0.0:
         return [0.0 for _ in values]
     return [round(value / norm, 6) for value in values]
+
+
+def stable_digest(payload: object) -> str:
+    """Build a stable digest for nested JSON-serializable payloads."""
+    canonical = json.dumps(payload, sort_keys=True, separators=(",", ":"), ensure_ascii=True)
+    return hashlib.sha256(canonical.encode("utf-8")).hexdigest()

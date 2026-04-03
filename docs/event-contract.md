@@ -1,7 +1,7 @@
 # Simulated Event Contract
 
 ## Purpose
-This document defines the local event schemas used to simulate online behavior from normalized H&M datasets. These schemas are the contract for synthetic generation, replay, validation, and future Kafka topic integration.
+This document defines the local event schemas used to simulate online behavior from normalized H&M datasets. These schemas are the simulator-owned contract for synthetic generation, replay, validation, and future Kafka topic integration.
 
 ## Topic Boundaries
 
@@ -57,6 +57,31 @@ Ordering rules:
 - Events are ordered by `event_time`.
 - For the same `article_id`, price or metadata updates must not move backward in time within a replay batch.
 
+### `recommendation_tracking_events`
+Carries frontend-to-backend telemetry for recommendation exposures, clicks, and explicit feedback.
+
+Supported event types:
+- `recommendation_exposure`
+- `recommendation_click`
+- `recommendation_feedback`
+
+Required fields:
+- `event_type`
+- `event_time`
+- `customer_id`
+- `session_id`
+- `response_id`
+
+Conditional fields:
+- `article_id`: Required for `recommendation_click` and optional for `recommendation_feedback`.
+- `query_text`: Optional for exposure and click events, but valid as feedback context when an
+  article is not present.
+- `metadata`: Optional key-value bag for UI surface, placement, or request-context diagnostics.
+
+Ordering rules:
+- Exposure should be emitted before click or feedback for the same `response_id`.
+- Multiple UI actions for the same `response_id` must not move backward in time.
+
 ## Common Envelope Rules
 - `event_id` must be deterministic from the source row and replay step.
 - `event_time` must be an ISO 8601 UTC timestamp.
@@ -67,6 +92,25 @@ Ordering rules:
 - Replay batches are written under `data/events/replay_batches/`.
 - Each topic has its own JSON Lines file.
 - A replay manifest records source inputs, row counts, and the generation timestamp.
+- `simulator/` owns replay-batch generation and manifest writing.
+- `backend/` consumes replay batches through these topic files or equivalent broker topics without importing simulator implementation details.
+- Public recommendation tracking events are accepted through `POST /events` and written as
+  append-only JSONL audit records under `data/reports/experiments/` in local development.
+
+## Replay Manifest Contract
+- `manifest.json` is written beside the replay topic files.
+- The manifest must include `generated_at_utc`.
+- The manifest must include one entry per topic with:
+  - `path`
+  - `row_count`
+- Topic file rows must remain sorted by `(event_time, event_id)` so backend consumers and validators can replay deterministically.
+
+## Boundary Rules
+- The simulator may read normalized datasets to derive synthetic traffic.
+- The backend may consume `interaction_events` and `catalog_events` payloads, but it must treat the payload schema and manifest as the public handoff.
+- The frontend may emit recommendation tracking events only through the public `POST /events`
+  contract and should not publish directly to broker topics or write local files.
+- Future non-simulator producers must emit the same topic contract if they are intended to replace local fake traffic.
 
 ## Acceptance Criteria
 - Interaction and catalog schemas are explicit enough to drive tasks `T13` through `T16`.

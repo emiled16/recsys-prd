@@ -51,6 +51,7 @@ class ExposureLogger:
         response_id: str,
         assignment: ExperimentAssignment,
         request_payload: dict[str, object],
+        response_payload: dict[str, object],
         recommendation_payload: list[dict[str, object]],
     ) -> None:
         self.path.parent.mkdir(parents=True, exist_ok=True)
@@ -63,10 +64,10 @@ class ExposureLogger:
                         "variant": assignment.variant,
                         "bucket": assignment.bucket,
                         "request": request_payload,
+                        "response": response_payload,
                         "recommendations": recommendation_payload,
                     },
                     sort_keys=True,
                 )
                 + "\n"
             )
-

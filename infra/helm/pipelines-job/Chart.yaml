@@ -1,0 +1,6 @@
+apiVersion: v2
+name: pipelines-job
+description: Offline pipelines surface for normalization, embeddings, features, and training jobs.
+type: application
+version: 0.1.0
+appVersion: "0.1.0"

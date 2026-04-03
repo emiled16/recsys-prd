@@ -1,0 +1,125 @@
+:root {
+  color-scheme: light;
+  font-family: "IBM Plex Sans", "Avenir Next", sans-serif;
+  background:
+    radial-gradient(circle at top, rgba(255, 214, 153, 0.9), transparent 38%),
+    linear-gradient(160deg, #faf4eb 0%, #f5eadb 45%, #efe4d3 100%);
+  color: #23170c;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  min-height: 100vh;
+}
+
+.shell {
+  width: min(1100px, calc(100vw - 2rem));
+  margin: 0 auto;
+  padding: 3rem 0 4rem;
+}
+
+.hero {
+  margin-bottom: 2rem;
+}
+
+.eyebrow {
+  text-transform: uppercase;
+  letter-spacing: 0.2em;
+  font-size: 0.8rem;
+  margin: 0 0 1rem;
+  color: #8f4e1c;
+}
+
+h1,
+h2 {
+  font-family: "Iowan Old Style", "Palatino Linotype", serif;
+  margin: 0;
+}
+
+h1 {
+  max-width: 12ch;
+  font-size: clamp(2.6rem, 5vw, 4.8rem);
+  line-height: 0.95;
+}
+
+.lede {
+  max-width: 65ch;
+  margin-top: 1rem;
+  font-size: 1.05rem;
+  line-height: 1.6;
+}
+
+.panel {
+  padding: 1.5rem;
+  border: 1px solid rgba(35, 23, 12, 0.12);
+  border-radius: 28px;
+  background: rgba(255, 250, 244, 0.82);
+  backdrop-filter: blur(10px);
+  box-shadow: 0 24px 80px rgba(85, 52, 21, 0.12);
+}
+
+.query-form {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 1rem;
+  margin-bottom: 1.5rem;
+}
+
+.query-form label {
+  display: grid;
+  gap: 0.4rem;
+  font-size: 0.92rem;
+}
+
+.query-form input {
+  border: 1px solid rgba(35, 23, 12, 0.16);
+  border-radius: 999px;
+  padding: 0.9rem 1rem;
+  background: #fffdfa;
+}
+
+.query-form button {
+  align-self: end;
+  border: 0;
+  border-radius: 999px;
+  padding: 0.95rem 1.2rem;
+  background: #23170c;
+  color: #fff7ef;
+  cursor: pointer;
+}
+
+.status-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  gap: 1rem;
+  margin-bottom: 1rem;
+}
+
+article {
+  padding: 1rem;
+  border-radius: 20px;
+  background: rgba(255, 255, 255, 0.72);
+}
+
+pre {
+  overflow-x: auto;
+  white-space: pre-wrap;
+  word-break: break-word;
+  font-size: 0.88rem;
+  line-height: 1.45;
+}
+
+@media (max-width: 640px) {
+  .shell {
+    width: min(100vw - 1rem, 1100px);
+    padding-top: 1rem;
+  }
+
+  .panel {
+    padding: 1rem;
+  }
+}

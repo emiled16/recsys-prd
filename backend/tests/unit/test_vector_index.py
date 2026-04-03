@@ -46,13 +46,21 @@ class VectorIndexTests(unittest.TestCase):
         self.assertEqual(len(fused_records), 2)
         self.assertEqual(manifest["distance_metric"], "cosine")
         self.assertEqual(
+            manifest["source_embedding_manifest_path"], str(self.embeddings_root / "manifest.json")
+        )
+        self.assertEqual(
             manifest["indexes"]["fused"]["source_embedding_path"],
             str(self.embeddings_root / "fused" / "article_fused_embeddings.jsonl"),
         )
+        self.assertIn("artifact_digest", manifest["indexes"]["fused"])
         self.assertAlmostEqual(text_records[0]["vector_norm"], 1.0, places=5)
         self.assertEqual(
             fused_records[1]["structured_metadata"]["department_name"],
             "Ladies Tops",
+        )
+        self.assertEqual(
+            fused_records[1]["lineage"]["source_embedding_manifest_path"],
+            str(self.embeddings_root / "manifest.json"),
         )
 
     def _write_raw_fixture(self) -> None:

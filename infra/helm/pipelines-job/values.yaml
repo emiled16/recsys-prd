@@ -1,0 +1,8 @@
+image:
+  repository: recsys-prd/pipelines
+  tag: latest
+
+command:
+  - python
+  - -m
+  - pipelines.normalization

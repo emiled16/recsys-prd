@@ -4,6 +4,7 @@ import argparse
 from pathlib import Path
 from typing import Sequence
 
+from recsys_prd.api.smoke import build_api_smoke_report
 from recsys_prd.config import AppSettings, get_app_settings
 from recsys_prd.events.replay import publish_local_replay
 from recsys_prd.events.validation import validate_local_replay
@@ -19,6 +20,7 @@ from recsys_prd.normalization.pipeline import run_hm_normalization
 from recsys_prd.ranking.dataset import build_ranking_dataset
 from recsys_prd.ranking.evaluation import evaluate_registered_ranking_model
 from recsys_prd.ranking.offline_evaluator import OfflineRankingEvaluator
+from recsys_prd.ranking.promotion import evaluate_promotion_gate
 from recsys_prd.ranking.registry import register_candidate_ranking_model
 from recsys_prd.ranking.training import train_local_ranking_model
 from recsys_prd.retrieval.candidate_retrieval import CandidateRetriever
@@ -28,11 +30,8 @@ from recsys_prd.retrieval.evaluation import OfflineRetrievalEvaluator
 from recsys_prd.retrieval.vector_index import build_vector_indexes
 from recsys_prd.services.mlflow_store import probe_mlflow_tracking
 from recsys_prd.services.qdrant_store import ensure_qdrant_connection, load_qdrant_indexes
-from recsys_prd.services.redpanda import (
-    KafkaReplayPublisher,
-    bootstrap_redpanda_topics,
-    validate_broker_replay,
-)
+from recsys_prd.services.redpanda import KafkaReplayPublisher, validate_broker_replay
+from recsys_prd.serving.online_evaluation import build_online_experiment_report
 from recsys_prd.validation.hm_normalized import validate_hm_normalized
 
 
@@ -70,10 +69,6 @@ def build_parser() -> argparse.ArgumentParser:
     subparsers.add_parser(
         "validate-hm-events",
         help="Validate generated local replay batches.",
-    )
-    subparsers.add_parser(
-        "bootstrap-redpanda-topics",
-        help="Create the local Redpanda topics needed by replay and serving.",
     )
     subparsers.add_parser(
         "build-pit-training-set",
@@ -198,6 +193,18 @@ def build_parser() -> argparse.ArgumentParser:
         "evaluate-retrieval",
         help="Evaluate offline retrieval quality with Recall@K, MRR, and NDCG.",
     )
+    subparsers.add_parser(
+        "smoke-test-api",
+        help="Run in-process smoke checks against the public API contract.",
+    )
+    subparsers.add_parser(
+        "build-online-evaluation-report",
+        help="Summarize exposure and tracking logs into online guardrail metrics.",
+    )
+    subparsers.add_parser(
+        "check-promotion-readiness",
+        help="Combine retrieval, ranking, smoke, and online guardrails into one promotion gate.",
+    )
 
     return parser
 
@@ -234,10 +241,6 @@ def run_event_command(args: argparse.Namespace, settings: AppSettings) -> int:
     if args.command == "validate-hm-events":
         result = validate_local_replay(settings=settings)
         print(f"Validation OK: {result['ok']}")
-        return 0
-    if args.command == "bootstrap-redpanda-topics":
-        result = bootstrap_redpanda_topics(settings=settings)
-        print(result)
         return 0
     if args.command == "publish-replay-to-kafka":
         manifest_path = settings.paths.events_root / "replay_batches" / "manifest.json"
@@ -347,6 +350,16 @@ def run_retrieval_command(args: argparse.Namespace, settings: AppSettings) -> in
         for name, value in outputs.items():
             print(f"{name}: {value}")
         return 0
+    if args.command == "smoke-test-api":
+        outputs = build_api_smoke_report(settings=settings)
+        for name, value in outputs.items():
+            print(f"{name}: {value}")
+        return 0
+    if args.command == "build-online-evaluation-report":
+        outputs = build_online_experiment_report(settings=settings)
+        for name, value in outputs.items():
+            print(f"{name}: {value}")
+        return 0
     return -1
 
 
@@ -379,6 +392,11 @@ def run_ranking_command(args: argparse.Namespace, settings: AppSettings) -> int:
         return 0
     if args.command == "probe-mlflow":
         print(probe_mlflow_tracking(settings=settings))
+        return 0
+    if args.command == "check-promotion-readiness":
+        outputs = evaluate_promotion_gate(settings=settings)
+        for name, value in outputs.items():
+            print(f"{name}: {value}")
         return 0
     return -1
 

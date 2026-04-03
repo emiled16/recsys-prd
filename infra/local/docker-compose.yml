@@ -1,0 +1,72 @@
+name: recsys-prd-local
+
+services:
+  redpanda:
+    image: docker.redpanda.com/redpandadata/redpanda:v24.3.5
+    command:
+      - redpanda
+      - start
+      - --overprovisioned
+      - --smp
+      - "1"
+      - --memory
+      - 1G
+      - --reserve-memory
+      - 0M
+      - --node-id
+      - "0"
+      - --check=false
+      - --kafka-addr
+      - PLAINTEXT://0.0.0.0:19092,OUTSIDE://0.0.0.0:9092
+      - --advertise-kafka-addr
+      - PLAINTEXT://redpanda:19092,OUTSIDE://localhost:9092
+      - --pandaproxy-addr
+      - 0.0.0.0:18082
+      - --advertise-pandaproxy-addr
+      - localhost:18082
+    ports:
+      - "9092:9092"
+      - "19092:19092"
+      - "9644:9644"
+
+  redis:
+    image: redis:7.4-alpine
+    ports:
+      - "6379:6379"
+
+  qdrant:
+    image: qdrant/qdrant:v1.15.5
+    ports:
+      - "6333:6333"
+      - "6334:6334"
+
+  mlflow:
+    image: python:3.13-slim
+    working_dir: /app
+    command: >
+      sh -c "pip install --no-cache-dir mlflow &&
+      mlflow server --host 0.0.0.0 --port 5001 --backend-store-uri sqlite:///mlflow.db --default-artifact-root /mlruns"
+    volumes:
+      - ../../data/mlflow:/mlruns
+    ports:
+      - "5001:5001"
+
+  prometheus:
+    image: prom/prometheus:v3.4.2
+    command:
+      - --config.file=/etc/prometheus/prometheus.yml
+    volumes:
+      - ../../ops/observability/prometheus/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+    ports:
+      - "9090:9090"
+
+  grafana:
+    image: grafana/grafana:12.1.1
+    environment:
+      - GF_SECURITY_ADMIN_USER=${GRAFANA_ADMIN_USER:-admin}
+      - GF_SECURITY_ADMIN_PASSWORD=${GRAFANA_ADMIN_PASSWORD:-admin}
+    volumes:
+      - ../../ops/observability/grafana/provisioning:/etc/grafana/provisioning:ro
+      - ../../ops/observability/grafana/dashboards:/var/lib/grafana/dashboards:ro
+    ports:
+      - "3000:3000"

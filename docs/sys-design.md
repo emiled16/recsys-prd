@@ -11,7 +11,7 @@ Build a production-grade multimodal fashion recommendation platform that:
 - ranks candidates with a deep learning model,
 - uses point-in-time correct offline and online features,
 - supports full training, evaluation, experimentation, and monitoring workflows,
-- can run locally for development with `docker-compose`,
+- can run locally for development with infra-owned Docker Compose plus direct app processes,
 - can later be promoted to production using infrastructure-as-code and GitOps.
 
 ## Non-Functional Requirements
@@ -122,7 +122,9 @@ The ranking model can start with a DLRM-style or MLP-based architecture and evol
 - Retrieval service queries the vector DB for candidate generation.
 - Ranking service fetches online features from Feast/Redis and returns ordered recommendations.
 - Feature hydration and inference paths are instrumented for latency and availability.
-- FastAPI exposes `/recommendations`, `/healthz`, and `/metrics` endpoints for local development and smoke checks.
+- FastAPI exposes `/healthz`, `/readyz`, `/diagnostics`, `/recommendations`, `/events`, and
+  `/metrics` so the application can be tested through public contracts instead of internal module
+  calls.
 
 ### Monitoring
 - Infrastructure metrics: CPU, memory, network, disk, queue lag.
@@ -137,6 +139,96 @@ The ranking model can start with a DLRM-style or MLP-based architecture and evol
 - Automatic model registration for qualified models.
 - Promotion gated by offline thresholds and online experiment policy.
 
+## Public API Surface for Application Testing
+
+The backend API is expected to support realistic frontend and smoke-test journeys without reaching
+into internal Python modules.
+
+### Endpoint Audit
+
+| Endpoint | Purpose | Consumers |
+| --- | --- | --- |
+| `GET /healthz` | basic liveness | container probes, simple smoke checks |
+| `GET /readyz` | readiness of retriever, ranker fallback, experiment assignment, and event sink | frontend bootstrap, deployment probes |
+| `GET /diagnostics` | safe local diagnostics, supported event types, and capability flags | local development UI, contract tests |
+| `POST /recommendations` | retrieval and ranking request/response contract | frontend recommendation surfaces, API tests |
+| `POST /events` | append-only exposure, click, and feedback tracking contract | frontend telemetry flows, experiment analysis |
+| `GET /metrics` | Prometheus scrape surface | infra-owned observability |
+
+### Recommendation Contract
+
+- Requests must include at least one of `customer_id`, `session_id`, `query_text`, or
+  `seed_article_ids`.
+- `session_id` requires `customer_id` to preserve stable online context and event correlation.
+- Responses include `response_id`, `experiment`, `variant`, `fallback_used`, ranked items, and
+  warnings so frontend and smoke tests can reason about fallback state explicitly.
+
+### Tracking Contract
+
+- `POST /events` accepts append-only batches of recommendation telemetry.
+- Supported event types for the public contract are:
+  - `recommendation_exposure`
+  - `recommendation_click`
+  - `recommendation_feedback`
+- Exposure and click events require a `response_id`.
+- Click events also require an `article_id`.
+- Feedback events require a `response_id` plus either `article_id` or `query_text`.
+- The local implementation writes JSONL audit records under `data/reports/experiments/` while
+  preserving a contract that can later publish through a broker-backed path.
+
+## Frontend-to-Backend Contract
+
+The frontend is intentionally decoupled from backend internals. It communicates only through HTTP
+contracts and does not import backend code or read local data files directly.
+
+### Recommendation Request Flow
+
+1. The browser creates or resumes a stable `session_id`.
+2. The frontend calls `POST /recommendations` with `customer_id`, `session_id`, and optional query
+   or seed items.
+3. The backend returns a `response_id`, experiment assignment, and ordered items.
+4. The frontend uses that `response_id` for follow-up telemetry.
+
+### Event Emission Flow
+
+1. The frontend emits `recommendation_exposure` after rendering results.
+2. The frontend emits `recommendation_click` when a user selects an item.
+3. The frontend emits `recommendation_feedback` for explicit negative or qualitative feedback.
+
+### Local Frontend Development Boundary
+
+- The frontend runs under Vite outside Docker Compose.
+- HTTP calls use the browser `fetch` API or a thin wrapper around it.
+- Axios is intentionally excluded to keep the client layer minimal and aligned with the Vite local
+  loop.
+
+## Embedding, Evaluation, and Promotion Lifecycle
+
+### Embedding Rebuilds
+
+- The retrieval stack must persist text, image, and fused embedding artifacts with explicit model
+  metadata, dataset snapshot references, generation timestamps, and downstream index lineage.
+- Rebuilds are treated as reproducible batch jobs owned by `pipelines/` and orchestrated by
+  `orchestration/`.
+
+### Promotion Gates
+
+- Candidate retrieval and ranking artifacts must satisfy offline quality thresholds before
+  promotion.
+- Artifact manifests must include dataset references, config metadata, and linked evaluation
+  outputs.
+- API smoke checks and experiment-readiness checks must pass before an artifact is promoted from
+  latest-run to candidate or serving-ready state.
+
+### Online Evaluation Loop
+
+- Recommendation responses generate exposure records keyed by `response_id`.
+- Follow-up click and feedback events join back to those exposures for online analysis.
+- Guardrails include timeout rate, null-result rate, error rate, fallback rate, and explicit drift
+  signals for retrieval quality.
+- Rollback triggers are owned by orchestration and should reference the latest candidate registry
+  plus recent guardrail reports.
+
 ## Stack Direction
 - Data source: H&M offline data + synthetic event generators
 - Messaging: Kafka
@@ -147,19 +239,54 @@ The ranking model can start with a DLRM-style or MLP-based architecture and evol
 - Online feature store: Redis
 - Vector database: Qdrant or Milvus
 - Experiment tracking / registry: MLflow
-- Orchestration: Dagster or Airflow
-- Orchestration implementation: Dagster assets, jobs, and schedules under `backend/recsys_prd/orchestration/dagster_defs.py`
+- Orchestration: Dagster
+- Orchestration implementation: Dagster user code, jobs, and schedules under `orchestration/projects/recsys_orchestration/`
 - Serving: FastAPI model services
 - Monitoring: Prometheus + Grafana, plus data/model monitoring components
-- Local infrastructure: `docker-compose`
+- Local infrastructure: `infra/local/docker-compose.yml`
 - Prod promotion path: Terraform + Argo CD / Flux style GitOps
 
-## Architecture Status
-This document is the initial scope and design direction. The next revision should add:
-- detailed ASCII diagrams,
-- layer-by-layer infra deep dive,
-- exact service boundaries,
-- storage layout, now split into `docs/data-layout.md`,
-- deployment topology,
-- retraining and rollback workflows,
-- tradeoff analysis for vector DB and orchestrator choices.
+## Runtime Ownership Matrix
+
+| Surface | Owns | Does not own | Local process |
+| --- | --- | --- | --- |
+| `backend/` | FastAPI serving, recommendation logic, online feature access, retrieval, ranking, and integration clients | Docker Compose manifests, Redpanda lifecycle, Dagster webserver/daemon | `uvicorn` from `backend/` |
+| `orchestration/` | Dagster user code, schedules, jobs, and orchestration packaging | Backend API runtime, shared service containers | `dg dev` from `orchestration/projects/recsys_orchestration/` |
+| `infra/local/` | Redpanda, Redis, Qdrant, MLflow, Prometheus, Grafana, local env defaults, broker bootstrap helper | FastAPI code, Dagster definitions, frontend code | `docker compose -f infra/local/docker-compose.yml ...` |
+| `frontend/` | Browser app, Vite workflow, HTTP client layer | Shared infra containers, backend internals, Dagster runtime | `vite` outside Compose |
+| `infra/helm/` | Deployment packaging, chart boundaries, environment overlays | Serving logic, pipeline code, frontend app logic | `helm template` or `helm upgrade` |
+| `ops/observability/` | Prometheus and Grafana provisioning assets | Application business logic, service lifecycle commands | Mounted into infra-owned services |
+| `simulator/` | Synthetic event generation and demo traffic | Backend serving and shared service lifecycle | Direct Python or orchestrated jobs |
+| `pipelines/` | Batch normalization, feature backfills, embedding rebuilds, training-set assembly, offline jobs | Online API serving and shared service lifecycle | Direct Python or orchestrated jobs |
+
+## Local Development Process Boundaries
+
+Local development is intentionally split by runtime ownership:
+
+1. Shared services start from `infra/local/` through Docker Compose.
+2. The backend API starts directly from `backend/` with `uvicorn`.
+3. Dagster starts directly from the orchestration workspace with `dg dev`.
+4. The future frontend starts directly from its own Vite workspace.
+
+This keeps edit-refresh loops fast for application code while preserving a realistic split between
+application runtimes and shared platform dependencies.
+
+## Deployment Topology
+
+### Local Development Mode
+
+- `infra/local/` runs Redpanda, Redis, Qdrant, MLflow, Prometheus, and Grafana.
+- `backend/` runs directly with Uvicorn and talks to shared services through configuration.
+- `frontend/` runs directly with Vite and uses HTTP calls into the backend API.
+- `orchestration/` runs Dagster separately for local job launches, schedules, and promotion checks.
+
+### Production-Like Mode
+
+- `infra/helm/backend-api/` deploys the FastAPI service.
+- `infra/helm/frontend/` deploys the frontend delivery surface.
+- `infra/helm/orchestration/` deploys the Dagster control plane.
+- `infra/helm/simulator-job/` deploys replay and synthetic-traffic jobs.
+- `infra/helm/pipelines-job/` deploys offline batch jobs for normalization, features, embeddings,
+  training, and evaluation.
+- Shared dependencies such as Kafka/Redpanda, Redis, Qdrant, MLflow, and observability remain
+  external or platform-managed depending on the target environment.

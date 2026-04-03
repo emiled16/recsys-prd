@@ -189,3 +189,73 @@
 - Decision: Register candidate ranking models into a file-backed local registry under `data/models/registry/`, with append-only history and a `latest_candidate` pointer per model family.
 - Rationale: This gives downstream evaluation and serving code a stable promoted-model reference without forcing early infrastructure dependencies.
 - Consequences: Future MLflow-backed registration should preserve the same logical fields for run ID, artifact paths, metrics, and stage transitions so local callers do not need a second contract.
+
+## [2026-04-02] D-020: Separate runtime ownership across backend, orchestration, and infra surfaces
+- Plan: v1.6
+- Context: The repository had both a top-level Dagster scaffold and backend-owned Dagster code, while local shared services still appeared as a repo-root concern.
+- Options considered:
+  - Keep Dagster definitions and local broker bootstrap inside the backend package.
+  - Split runtime ownership so backend, orchestration, and infra each own only their direct runtime surface.
+- Decision: Make `backend/` own API and integration logic only, `orchestration/` own Dagster user code and runtime commands, and `infra/local/` own Docker Compose, env defaults, and shared-service bootstrap helpers.
+- Rationale: This removes backend-internal ownership of shared runtimes, makes local development boundaries explicit, and aligns the repository with a production-like deployment topology.
+- Consequences: Local run commands change, backend defaults must target externally reachable service endpoints, and Dagster code should no longer live under `backend/recsys_prd/`.
+
+## [2026-04-02] D-021: Treat the repo-root Docker Compose file as a compatibility entrypoint only
+- Plan: v1.6
+- Context: Existing workflows referenced `docker-compose.yml` at the repository root, but M1 requires `infra/local/` to become the canonical owner of shared local services.
+- Options considered:
+  - Keep the full service manifest at the root.
+  - Move the canonical manifest into `infra/local/` and leave a thin root entrypoint for compatibility.
+- Decision: Store the canonical shared-service Compose manifest at `infra/local/docker-compose.yml` and reduce the root `docker-compose.yml` to a compatibility include.
+- Rationale: This preserves an obvious repo-root entrypoint while making ownership and future infra expansion explicit.
+- Consequences: New docs and scripts should reference `infra/local/` directly, and compatibility behavior now depends on Compose include support.
+
+## [2026-04-02] D-022: Expand the public API surface to support realistic local application tests
+- Plan: v1.6
+- Context: Local testing needed more than `POST /recommendations`; frontend and smoke-test flows also require readiness, diagnostics, and public event tracking.
+- Options considered:
+  - Keep a minimal API and continue testing through internal module calls.
+  - Publish a small but explicit application-facing contract for health, readiness, diagnostics, recommendations, and tracking events.
+- Decision: Standardize on `/healthz`, `/readyz`, `/diagnostics`, `/recommendations`, `/events`, and `/metrics` as the public local application contract.
+- Rationale: This makes application-level validation realistic while keeping unsafe internal state out of the API.
+- Consequences: Frontend, smoke tests, and orchestration checks should depend on these public endpoints instead of importing backend modules directly.
+
+## [2026-04-02] D-023: Run the frontend outside Compose with Vite and a fetch-based client layer
+- Plan: v1.6
+- Context: Local iteration on the browser surface should be fast and should not imply that the frontend belongs inside the infra-owned Docker Compose stack.
+- Options considered:
+  - Run the frontend from Docker Compose and standardize on Axios.
+  - Run the frontend directly with Vite and use the browser `fetch` API or a minimal wrapper.
+- Decision: Add a top-level `frontend/` workspace with Vite for local development and a thin `fetch`-based HTTP client layer.
+- Rationale: This keeps the browser feedback loop fast, reduces client dependencies, and respects the ownership split between application code and shared infra.
+- Consequences: Local runbooks must treat frontend, backend, orchestration, and shared services as separate processes.
+
+## [2026-04-02] D-024: Package deployment surfaces independently with Helm overlays per environment
+- Plan: v1.6
+- Context: The production-like topology needs backend API, frontend, orchestration, simulator jobs, and pipelines jobs to remain distinct deployable surfaces.
+- Options considered:
+  - Package the platform as one backend-centric Helm chart.
+  - Create a chart per top-level runtime plus environment overlays that describe shared-service ownership.
+- Decision: Use `infra/helm/` to define independent charts and environment-specific overlays for local, demo, and production-like targets.
+- Rationale: This keeps deployment packaging aligned with the repository boundary decisions and avoids hiding ownership under one monolithic release.
+- Consequences: Shared dependencies such as Kafka, Redis, Qdrant, MLflow, and observability must be documented as external or platform-managed per environment.
+
+## [2026-04-02] D-025: Standardize the local embedding path on a PyTorch-backed projection contract
+- Plan: v1.6
+- Context: The earlier deterministic hashing path was useful for bootstrap work, but the next retrieval phase needed a production-shaped artifact contract with explicit runtime metadata and lineage.
+- Options considered:
+  - Keep the hash-only embedding implementation as the canonical path.
+  - Move to a PyTorch-backed local embedding contract while preserving deterministic fallback behavior when the dependency is absent.
+- Decision: Treat the retrieval embedding stage as a PyTorch-backed projection pipeline with explicit runtime metadata, dataset digests, and per-record lineage, while allowing deterministic fallback projection when `torch` is unavailable.
+- Rationale: This preserves reproducibility and testability locally while making the embedding artifacts look and behave more like real production outputs.
+- Consequences: Embedding manifests and downstream index manifests must now include backend/runtime metadata and lineage digests.
+
+## [2026-04-02] D-026: Gate promotion on offline quality, API smoke checks, and online guardrails together
+- Plan: v1.6
+- Context: Candidate registration alone is not a credible promotion model once retrieval evaluation, experimentation, and public API checks exist.
+- Options considered:
+  - Promote the latest run after registration only.
+  - Require retrieval readiness, ranking evaluation thresholds, public API smoke checks, and online guardrail status before promotion.
+- Decision: Add a promotion-gate report that combines retrieval readiness, ranking metrics, API smoke results, and online evaluation guardrails into one decision artifact.
+- Rationale: This gives orchestration and future deployment steps one consistent source of truth for promotion eligibility.
+- Consequences: Dagster evaluation and promotion jobs must produce or consume the gate report instead of inferring readiness from a single model artifact.

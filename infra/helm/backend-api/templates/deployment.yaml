@@ -1,0 +1,38 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ .Chart.Name }}
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: {{ .Chart.Name }}
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: {{ .Chart.Name }}
+    spec:
+      containers:
+        - name: api
+          image: "{{ .Values.image.repository }}:{{ .Values.image.tag }}"
+          command:
+            - python
+            - -m
+            - uvicorn
+            - recsys_prd.api.app:create_app
+            - --factory
+            - --host
+            - 0.0.0.0
+            - --port
+            - "{{ .Values.service.port }}"
+          env:
+            - name: RECSYS_PRD_BROKER_BOOTSTRAP_SERVERS
+              value: {{ .Values.env.RECSYS_PRD_BROKER_BOOTSTRAP_SERVERS | quote }}
+            - name: RECSYS_PRD_REDIS_HOST
+              value: {{ .Values.env.RECSYS_PRD_REDIS_HOST | quote }}
+            - name: RECSYS_PRD_QDRANT_HOST
+              value: {{ .Values.env.RECSYS_PRD_QDRANT_HOST | quote }}
+            - name: RECSYS_PRD_MLFLOW_TRACKING_URI
+              value: {{ .Values.env.RECSYS_PRD_MLFLOW_TRACKING_URI | quote }}
+          ports:
+            - containerPort: {{ .Values.service.port }}
