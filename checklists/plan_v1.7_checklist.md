@@ -21,7 +21,7 @@
 - [x] T142: Publish simulator ownership and runtime rules for replay generation, fake traffic, and event validation
 
 ## Milestone M5: Separate Offline Training Pipelines From Backend-Serving Model Components
-- [ ] T143: Move ranking training dataset builders and offline training entrypoints into the pipeline-owned training surface
+- [x] T143: Move ranking training dataset builders and offline training entrypoints into the pipeline-owned training surface
 - [ ] T144: Define the backend-owned serving model contract separate from pipeline-owned training implementations
 - [ ] T145: Move offline evaluation and training orchestration imports to pipeline-owned or orchestration-owned entrypoints
 

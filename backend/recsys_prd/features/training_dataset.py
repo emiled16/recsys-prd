@@ -1,4 +1,4 @@
-from pipelines.training_dataset import (
+from pipelines.training.datasets import (
     TRAINING_FEATURE_FIELDS,
     TRAINING_FIELDS,
     build_point_in_time_feature_row,
