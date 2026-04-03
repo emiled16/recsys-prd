@@ -6,12 +6,12 @@ import tempfile
 import unittest
 from pathlib import Path
 
+from pipelines.normalization import run_hm_normalization
 from simulator import publish_local_replay
 
 from recsys_prd.features.parity_validation import validate_feature_parity_and_freshness
 from recsys_prd.features.streaming_features import compute_online_feature_store
 from recsys_prd.features.training_dataset import build_point_in_time_training_dataset
-from recsys_prd.normalization.pipeline import run_hm_normalization
 
 
 class FeatureParityValidationTests(unittest.TestCase):

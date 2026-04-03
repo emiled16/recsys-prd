@@ -64,6 +64,64 @@ class SurfaceBoundaryTests(unittest.TestCase):
             (self.reports_root / "data_quality" / "feature_parity_and_freshness.json").exists()
         )
 
+    def test_legacy_backend_batch_packages_are_removed(self) -> None:
+        repo_root = Path(__file__).resolve().parents[3]
+
+        self.assertEqual(
+            list((repo_root / "backend" / "recsys_prd" / "normalization").glob("*.py")),
+            [],
+        )
+        self.assertEqual(
+            list((repo_root / "backend" / "recsys_prd" / "validation").glob("*.py")),
+            [],
+        )
+        self.assertEqual(
+            list((repo_root / "backend" / "recsys_prd" / "events").glob("*.py")),
+            [],
+        )
+
+    def test_runtime_surfaces_do_not_import_legacy_backend_batch_paths(self) -> None:
+        repo_root = Path(__file__).resolve().parents[3]
+        forbidden_imports = (
+            "from recsys_prd.normalization",
+            "import recsys_prd.normalization",
+            "from recsys_prd.validation",
+            "import recsys_prd.validation",
+            "from recsys_prd.events",
+            "import recsys_prd.events",
+        )
+        violations: list[str] = []
+
+        for root_name in ("backend", "pipelines", "simulator", "orchestration"):
+            for path in (repo_root / root_name).rglob("*.py"):
+                if ".venv" in path.parts or "__pycache__" in path.parts:
+                    continue
+                if path == Path(__file__).resolve():
+                    continue
+                content = path.read_text(encoding="utf-8")
+                if any(pattern in content for pattern in forbidden_imports):
+                    violations.append(str(path.relative_to(repo_root)))
+
+        self.assertEqual(violations, [])
+
+    def test_dagster_assets_import_owner_surfaces(self) -> None:
+        repo_root = Path(__file__).resolve().parents[3]
+        assets_path = (
+            repo_root
+            / "orchestration"
+            / "projects"
+            / "recsys_orchestration"
+            / "src"
+            / "recsys_orchestration"
+            / "defs"
+            / "assets.py"
+        )
+        content = assets_path.read_text(encoding="utf-8")
+
+        self.assertIn("from pipelines.normalization import run_hm_normalization", content)
+        self.assertIn("from pipelines.training import (", content)
+        self.assertIn("from simulator import publish_local_replay", content)
+
     def _write_raw_fixture(self) -> None:
         articles_dir = self.raw_root / "articles"
         customers_dir = self.raw_root / "customers"

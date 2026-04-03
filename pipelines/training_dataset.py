@@ -21,7 +21,7 @@ from recsys_prd.features.static_lookups import (
 )
 from recsys_prd.io.json_ops import write_json
 from recsys_prd.io.tabular_ops import read_tabular_rows
-from recsys_prd.normalization.writer import write_dataset_bundle
+from pipelines.normalization.writer import write_dataset_bundle
 
 StaticLookupMap: TypeAlias = dict[str, dict[str, str]]
 ImagePresenceMap: TypeAlias = dict[str, bool]

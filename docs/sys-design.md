@@ -290,6 +290,18 @@ application runtimes and shared platform dependencies.
 - Shared replay artifact helpers such as JSONL readers/writers and deterministic event ID builders
   are treated as cross-runtime utilities under `recsys_prd.io.*`, not as backend-owned event
   runtime modules.
+
+## v1.7 Steady-State Package Ownership
+
+- `backend/recsys_prd/api`, `backend/recsys_prd/serving`, `backend/recsys_prd/services`, and
+  backend-owned ranking serving contracts remain backend runtime code.
+- `pipelines/normalization`, `pipelines/validation`, and `pipelines/training` own offline batch
+  computation, offline evaluation entrypoints, and Spark-aware dataset publication.
+- `simulator/` owns replay generation, replay validation, and synthetic traffic utilities.
+- `backend/recsys_prd/io` holds the small shared artifact helpers that are intentionally reused
+  across runtime surfaces.
+- The old backend-owned batch package paths for normalization, validation, and events are no longer
+  part of the runtime topology.
 - `infra/helm/pipelines-job/` deploys offline batch jobs for normalization, features, embeddings,
   training, and evaluation.
 - Shared dependencies such as Kafka/Redpanda, Redis, Qdrant, MLflow, and observability remain

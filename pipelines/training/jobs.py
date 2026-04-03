@@ -151,6 +151,13 @@ def _append_run_log(path: Path, manifest_payload: dict[str, object]) -> None:
     write_jsonl(path, existing_rows)
 
 
+__all__ = [
+    "evaluate_offline_ranking_quality",
+    "evaluate_registered_ranking_model",
+    "train_local_ranking_model",
+]
+
+
 def evaluate_registered_ranking_model(
     *,
     models_root: Path | None = None,

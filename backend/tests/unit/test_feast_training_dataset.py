@@ -8,10 +8,10 @@ import unittest
 from pathlib import Path
 
 import pandas as pd
+from pipelines.normalization import run_hm_normalization
 
 from recsys_prd.features.feast_training_dataset import FeastPointInTimeDatasetBuilder
 from recsys_prd.io.tabular_ops import read_tabular_rows
-from recsys_prd.normalization.pipeline import run_hm_normalization
 
 
 class FakeRetrievalJob:

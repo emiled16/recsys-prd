@@ -26,7 +26,7 @@
 - [x] T145: Move offline evaluation and training orchestration imports to pipeline-owned or orchestration-owned entrypoints
 
 ## Milestone M6: Align Orchestration, Testing, and Documentation With the New Boundaries
-- [ ] T146: Remove temporary migration shims after downstream imports have been moved to their owning packages
-- [ ] T147: Refactor Dagster asset definitions to import pipeline, simulator, and backend entrypoints from their owning surfaces only
-- [ ] T148: Add architecture-level regression tests for backend-versus-pipeline-versus-simulator imports and artifact handoffs
-- [ ] T149: Publish the updated topology and migration notes for the Spark-backed pipeline architecture
+- [x] T146: Remove temporary migration shims after downstream imports have been moved to their owning packages
+- [x] T147: Refactor Dagster asset definitions to import pipeline, simulator, and backend entrypoints from their owning surfaces only
+- [x] T148: Add architecture-level regression tests for backend-versus-pipeline-versus-simulator imports and artifact handoffs
+- [x] T149: Publish the updated topology and migration notes for the Spark-backed pipeline architecture

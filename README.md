@@ -208,17 +208,28 @@ helm template orchestration infra/helm/orchestration -f infra/helm/environments/
 
 - `infra/local/` owns Redpanda, Redis, Qdrant, MLflow, Prometheus, and Grafana through Docker
   Compose.
-- `backend/` owns the FastAPI app, serving logic, feature access, retrieval, ranking, and service
+- `backend/` owns the FastAPI app, serving logic, retrieval/ranking serving contracts, and service
   integrations. It consumes shared services only through configuration.
 - `simulator/` owns synthetic traffic generation, replay-batch publication, and replay contract
   validation.
 - Shared replay helpers such as JSONL artifact IO and deterministic event ID builders live under
   `backend/recsys_prd/io/` because they are consumed across simulator, pipelines, and backend
   surfaces.
-- `pipelines/` owns normalization, offline feature generation, Feast materialization, and ranking
-  dataset assembly.
+- `pipelines/` owns Spark-backed normalization, normalized-data validation, offline feature
+  generation, Feast materialization, ranking-dataset assembly, and offline training/evaluation
+  entrypoints.
 - `orchestration/` owns Dagster definitions, schedules, and local Dagster runtime commands.
 - `frontend/` runs outside Compose with Vite and calls the backend over HTTP through a thin
   `fetch`-based client.
 - `infra/helm/` owns production-like packaging for backend API, frontend, orchestration, simulator
   jobs, and pipelines jobs.
+
+## v1.7 Migration Notes
+
+- `backend/recsys_prd/normalization`, `backend/recsys_prd/validation`, and `backend/recsys_prd/events`
+  have been removed as runtime entry surfaces.
+- The canonical offline batch entrypoints now live under `pipelines/normalization/`,
+  `pipelines/validation/`, and `pipelines/training/`.
+- The canonical simulator entrypoints now live under `simulator/` and `simulator/replay/`.
+- Backend serving code now loads registered ranking artifacts through
+  `backend/recsys_prd/ranking/serving.py` instead of through the offline training runtime.

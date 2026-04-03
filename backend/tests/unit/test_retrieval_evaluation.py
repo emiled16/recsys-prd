@@ -6,7 +6,8 @@ import tempfile
 import unittest
 from pathlib import Path
 
-from recsys_prd.normalization.pipeline import run_hm_normalization
+from pipelines.normalization import run_hm_normalization
+
 from recsys_prd.retrieval.contracts import CandidateRecord, RetrievalResult
 from recsys_prd.retrieval.embedding_pipeline import build_embedding_artifacts
 from recsys_prd.retrieval.evaluation import OfflineRetrievalEvaluator

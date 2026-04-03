@@ -13,7 +13,7 @@ from pipelines.training_dataset import (
 )
 from recsys_prd.config import AppSettings, get_app_settings
 from recsys_prd.io.json_ops import write_json
-from recsys_prd.normalization.writer import write_dataset_bundle
+from pipelines.normalization.writer import write_dataset_bundle
 
 FEAST_FEATURE_REFS = [
     "customer_profile_features:age",
@@ -259,4 +259,3 @@ class FeastPointInTimeDatasetBuilder:
     @staticmethod
     def _stringify(value: object) -> str:
         return "" if value is None else str(value)
-

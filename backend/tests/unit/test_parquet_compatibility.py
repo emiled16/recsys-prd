@@ -4,8 +4,9 @@ import tempfile
 import unittest
 from pathlib import Path
 
+from pipelines.normalization.writer import write_dataset_bundle
+
 from recsys_prd.io.tabular_ops import read_tabular_rows
-from recsys_prd.normalization.writer import write_dataset_bundle
 
 
 class ParquetCompatibilityTests(unittest.TestCase):

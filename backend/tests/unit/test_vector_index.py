@@ -7,8 +7,9 @@ import tempfile
 import unittest
 from pathlib import Path
 
+from pipelines.normalization import run_hm_normalization
+
 from recsys_prd.io.jsonl_ops import read_jsonl
-from recsys_prd.normalization.pipeline import run_hm_normalization
 from recsys_prd.retrieval.embedding_pipeline import build_embedding_artifacts
 from recsys_prd.retrieval.vector_index import build_vector_indexes
 

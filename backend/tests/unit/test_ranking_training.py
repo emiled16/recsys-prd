@@ -7,9 +7,10 @@ import tempfile
 import unittest
 from pathlib import Path
 
+from pipelines.normalization import run_hm_normalization
+
 from recsys_prd.io.jsonl_ops import read_jsonl
 from recsys_prd.io.tabular_ops import read_tabular_rows
-from recsys_prd.normalization.pipeline import run_hm_normalization
 from recsys_prd.ranking.dataset import build_ranking_dataset
 from recsys_prd.ranking.model import RankingTrainingConfig
 from recsys_prd.ranking.trainers import XGBoostRankerTrainer

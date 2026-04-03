@@ -8,14 +8,16 @@ from recsys_prd.config import get_app_settings
 
 from pipelines.feast_store import apply_feast_repo
 from pipelines.normalization import run_hm_normalization
-from simulator.replay import publish_local_replay
+from pipelines.training import (
+    evaluate_offline_ranking_quality,
+    evaluate_registered_ranking_model,
+    train_local_ranking_model,
+)
+from simulator import publish_local_replay
 from recsys_prd.api.smoke import build_api_smoke_report
 from recsys_prd.features.streaming_features import compute_online_feature_store
-from recsys_prd.ranking.evaluation import evaluate_registered_ranking_model
-from recsys_prd.ranking.offline_evaluator import OfflineRankingEvaluator
 from recsys_prd.ranking.promotion import evaluate_promotion_gate
 from recsys_prd.ranking.registry import register_candidate_ranking_model
-from recsys_prd.ranking.training import train_local_ranking_model
 from recsys_prd.retrieval.embedding_pipeline import build_embedding_artifacts
 from recsys_prd.retrieval.evaluation import OfflineRetrievalEvaluator
 from recsys_prd.retrieval.vector_index import build_vector_indexes
@@ -104,7 +106,7 @@ def ranking_evaluation_report() -> dict[str, str]:
 @dg.asset(group_name="evaluation", deps=[ranking_candidate_registration])
 def offline_ranking_quality_report() -> dict[str, str]:
     """Evaluate offline ranking quality metrics for the latest candidate."""
-    outputs = OfflineRankingEvaluator(settings=get_app_settings()).evaluate()
+    outputs = evaluate_offline_ranking_quality(settings=get_app_settings())
     return {name: str(value) for name, value in outputs.items()}
 
 

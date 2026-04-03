@@ -7,7 +7,8 @@ import tempfile
 import unittest
 from pathlib import Path
 
-from recsys_prd.normalization.pipeline import run_hm_normalization
+from pipelines.normalization import run_hm_normalization
+
 from recsys_prd.ranking.offline_evaluator import OfflineRankingEvaluator
 from recsys_prd.ranking.registry import register_candidate_ranking_model
 from recsys_prd.ranking.training import train_local_ranking_model

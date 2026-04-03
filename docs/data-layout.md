@@ -219,3 +219,13 @@ Rules:
 - The project has a stable, documented local data directory structure.
 - The layout cleanly separates raw, normalized, feature, event, embedding, index, model, and report artifacts.
 - The conventions are specific enough to guide implementation of tasks `T7` through `T25`.
+
+## v1.7 Migration Summary
+- `data/normalized/` is now produced by pipeline-owned normalization code rather than by
+  backend-owned modules.
+- `data/reports/data_quality/hm_normalized_validation.json` is now emitted by
+  `pipelines/validation/`.
+- `data/events/replay_batches/` remains simulator-owned, while shared JSONL artifact helpers moved
+  into `recsys_prd.io`.
+- `data/models/training_sets/` and downstream training/evaluation artifacts are launched through
+  `pipelines/training/` entrypoints even when backend-owned model contracts consume the outputs.

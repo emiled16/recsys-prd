@@ -6,11 +6,11 @@ import tempfile
 import unittest
 from pathlib import Path
 
+from pipelines.normalization import run_hm_normalization
 from simulator import publish_local_replay
 
 from recsys_prd.features.online_service import OnlineFeatureService
 from recsys_prd.features.streaming_features import compute_online_feature_store
-from recsys_prd.normalization.pipeline import run_hm_normalization
 from recsys_prd.retrieval.candidate_retrieval import CandidateRetriever
 from recsys_prd.retrieval.contracts import RetrievalRequest
 from recsys_prd.retrieval.embedding_pipeline import build_embedding_artifacts

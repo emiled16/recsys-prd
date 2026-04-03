@@ -6,9 +6,8 @@ import tempfile
 import unittest
 from pathlib import Path
 
+from pipelines.normalization import run_hm_normalization
 from simulator import publish_local_replay, validate_local_replay
-
-from recsys_prd.normalization.pipeline import run_hm_normalization
 
 
 class HmEventsTests(unittest.TestCase):
