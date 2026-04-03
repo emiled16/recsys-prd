@@ -189,3 +189,23 @@
 - Decision: Register candidate ranking models into a file-backed local registry under `data/models/registry/`, with append-only history and a `latest_candidate` pointer per model family.
 - Rationale: This gives downstream evaluation and serving code a stable promoted-model reference without forcing early infrastructure dependencies.
 - Consequences: Future MLflow-backed registration should preserve the same logical fields for run ID, artifact paths, metrics, and stage transitions so local callers do not need a second contract.
+
+## [2026-04-02] D-020: Separate runtime ownership across backend, orchestration, and infra surfaces
+- Plan: v1.6
+- Context: The repository had both a top-level Dagster scaffold and backend-owned Dagster code, while local shared services still appeared as a repo-root concern.
+- Options considered:
+  - Keep Dagster definitions and local broker bootstrap inside the backend package.
+  - Split runtime ownership so backend, orchestration, and infra each own only their direct runtime surface.
+- Decision: Make `backend/` own API and integration logic only, `orchestration/` own Dagster user code and runtime commands, and `infra/local/` own Docker Compose, env defaults, and shared-service bootstrap helpers.
+- Rationale: This removes backend-internal ownership of shared runtimes, makes local development boundaries explicit, and aligns the repository with a production-like deployment topology.
+- Consequences: Local run commands change, backend defaults must target externally reachable service endpoints, and Dagster code should no longer live under `backend/recsys_prd/`.
+
+## [2026-04-02] D-021: Treat the repo-root Docker Compose file as a compatibility entrypoint only
+- Plan: v1.6
+- Context: Existing workflows referenced `docker-compose.yml` at the repository root, but M1 requires `infra/local/` to become the canonical owner of shared local services.
+- Options considered:
+  - Keep the full service manifest at the root.
+  - Move the canonical manifest into `infra/local/` and leave a thin root entrypoint for compatibility.
+- Decision: Store the canonical shared-service Compose manifest at `infra/local/docker-compose.yml` and reduce the root `docker-compose.yml` to a compatibility include.
+- Rationale: This preserves an obvious repo-root entrypoint while making ownership and future infra expansion explicit.
+- Consequences: New docs and scripts should reference `infra/local/` directly, and compatibility behavior now depends on Compose include support.

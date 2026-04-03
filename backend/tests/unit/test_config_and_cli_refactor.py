@@ -6,8 +6,8 @@ import unittest
 from pathlib import Path
 from unittest.mock import patch
 
-from recsys_prd.cli import main, run_feature_command, run_retrieval_command
-from recsys_prd.config import PathSettings
+from recsys_prd.cli import build_parser, main, run_feature_command, run_retrieval_command
+from recsys_prd.config import BrokerSettings, PathSettings
 
 
 class ConfigAndCliRefactorTests(unittest.TestCase):
@@ -57,6 +57,14 @@ class ConfigAndCliRefactorTests(unittest.TestCase):
 
         self.assertEqual(status, 0)
         mock_handler.assert_called_once()
+
+    def test_backend_cli_does_not_expose_runtime_bootstrap_command(self) -> None:
+        parser = build_parser()
+        with self.assertRaises(SystemExit):
+            parser.parse_args(["bootstrap-redpanda-topics"])
+
+    def test_broker_defaults_target_external_local_redpanda_listener(self) -> None:
+        self.assertEqual(BrokerSettings().bootstrap_servers, "127.0.0.1:9092")
 
     def test_retrieval_command_routes_to_qdrant_loader(self) -> None:
         args = argparse.Namespace(command="build-qdrant-index")

@@ -11,6 +11,10 @@ The repository now includes a runnable backend stack for ingestion, normalizatio
 ## Repository Structure
 
 - `backend/`: Python backend package, scripts, and tests.
+- `simulator/`: Simulator-owned synthetic event generation, replay manifests, and replay validation.
+- `pipelines/`: Offline normalization, PIT dataset building, Feast batch flows, and ranking-dataset assembly.
+- `infra/local/`: Docker Compose, env defaults, and bootstrap helpers for shared local services.
+- `orchestration/`: Dagster workspace, user code, and deployment packaging.
 - `docs/`: Project context, charter, system design, and progress tracking.
 - `plans/`: Versioned implementation plans.
 - `checklists/`: Matching execution checklists for each plan version.
@@ -23,8 +27,8 @@ The repository now includes a runnable backend stack for ingestion, normalizatio
 - `docs/offline-feature-spec.md`: Offline feature entities, feature views, and source mappings.
 - `docs/online-feature-requirements.md`: Freshness and streaming-input requirements for online features.
 - `docs/multimodal-representation-strategy.md`: Retrieval modality and fusion strategy for product representations.
-- `plans/plan_v1.4.md`: Current granular implementation plan.
-- `checklists/plan_v1.4_checklist.md`: Current execution checklist.
+- `plans/plan_v1.6.md`: Current implementation plan.
+- `checklists/plan_v1.6_checklist.md`: Current execution checklist.
 
 ## Working Principles
 
@@ -104,16 +108,31 @@ Run the FastAPI recommendation service locally with:
 
 ```bash
 cd backend
-poetry run uvicorn recsys_prd.api.app:create_app --factory --reload
+.venv/bin/poetry run uvicorn recsys_prd.api.app:create_app --factory --reload
 ```
 
-Start the local infra stack, Prometheus, and Grafana with:
+Start the local shared infra stack, Prometheus, and Grafana with:
 
 ```bash
-docker compose up -d
+docker compose -f infra/local/docker-compose.yml --env-file infra/local/.env.example up -d
 ```
 
 Grafana is available at `http://localhost:3000` and Prometheus at `http://localhost:9090`.
+
+Bootstrap Redpanda topics from the infra-owned helper after the broker is up:
+
+```bash
+backend/.venv/bin/python infra/local/scripts/bootstrap_redpanda_topics.py
+```
+
+Run Dagster locally from the dedicated orchestration workspace:
+
+```bash
+cd orchestration/projects/recsys_orchestration
+uv sync
+uv run dg check defs
+uv run dg dev
+```
 
 Validate online freshness and offline-online feature parity with:
 
@@ -131,3 +150,16 @@ python3 backend/scripts/ingest_hm_raw.py validate-feature-parity
 - Experimentation support
 - Monitoring and orchestration
 - Local development infrastructure and production deployment design
+
+## Local Development Topology
+
+- `infra/local/` owns Redpanda, Redis, Qdrant, MLflow, Prometheus, and Grafana through Docker
+  Compose.
+- `backend/` owns the FastAPI app, serving logic, feature access, retrieval, ranking, and service
+  integrations. It consumes shared services only through configuration.
+- `simulator/` owns synthetic traffic generation, replay-batch publication, and replay contract
+  validation.
+- `pipelines/` owns normalization, offline feature generation, Feast materialization, and ranking
+  dataset assembly.
+- `orchestration/` owns Dagster definitions, schedules, and local Dagster runtime commands.
+- A future `frontend/` workspace should run outside Compose with Vite and call the backend over HTTP.

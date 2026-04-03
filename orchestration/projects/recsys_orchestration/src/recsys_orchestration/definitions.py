@@ -1,17 +1,26 @@
 from __future__ import annotations
 
+import sys
+from pathlib import Path
+
 import dagster as dg
 
-from recsys_prd.config import get_app_settings
-from recsys_prd.features.feast_store import apply_feast_repo
-from recsys_prd.normalization.pipeline import run_hm_normalization
-from recsys_prd.ranking.evaluation import evaluate_registered_ranking_model
-from recsys_prd.ranking.training import train_local_ranking_model
-from recsys_prd.retrieval.embedding_pipeline import build_embedding_artifacts
+
+REPO_ROOT = Path(__file__).resolve().parents[5]
+BACKEND_ROOT = REPO_ROOT / "backend"
+if str(BACKEND_ROOT) not in sys.path:
+    sys.path.insert(0, str(BACKEND_ROOT))
+
+from recsys_prd.config import get_app_settings  # noqa: E402
+from recsys_prd.features.feast_store import apply_feast_repo  # noqa: E402
+from recsys_prd.normalization.pipeline import run_hm_normalization  # noqa: E402
+from recsys_prd.ranking.evaluation import evaluate_registered_ranking_model  # noqa: E402
+from recsys_prd.ranking.training import train_local_ranking_model  # noqa: E402
+from recsys_prd.retrieval.embedding_pipeline import build_embedding_artifacts  # noqa: E402
 
 
 @dg.asset(group_name="ingestion")
-def hm_raw_dataset(context: dg.AssetExecutionContext) -> dg.MaterializeResult:
+def hm_raw_dataset(context) -> dg.MaterializeResult:
     """Track the raw H&M dataset landing area."""
     settings = get_app_settings()
     return dg.MaterializeResult(

@@ -11,7 +11,7 @@ Build a production-grade multimodal fashion recommendation platform that:
 - ranks candidates with a deep learning model,
 - uses point-in-time correct offline and online features,
 - supports full training, evaluation, experimentation, and monitoring workflows,
-- can run locally for development with `docker-compose`,
+- can run locally for development with infra-owned Docker Compose plus direct app processes,
 - can later be promoted to production using infrastructure-as-code and GitOps.
 
 ## Non-Functional Requirements
@@ -147,19 +147,33 @@ The ranking model can start with a DLRM-style or MLP-based architecture and evol
 - Online feature store: Redis
 - Vector database: Qdrant or Milvus
 - Experiment tracking / registry: MLflow
-- Orchestration: Dagster or Airflow
-- Orchestration implementation: Dagster assets, jobs, and schedules under `backend/recsys_prd/orchestration/dagster_defs.py`
+- Orchestration: Dagster
+- Orchestration implementation: Dagster user code, jobs, and schedules under `orchestration/projects/recsys_orchestration/`
 - Serving: FastAPI model services
 - Monitoring: Prometheus + Grafana, plus data/model monitoring components
-- Local infrastructure: `docker-compose`
+- Local infrastructure: `infra/local/docker-compose.yml`
 - Prod promotion path: Terraform + Argo CD / Flux style GitOps
 
-## Architecture Status
-This document is the initial scope and design direction. The next revision should add:
-- detailed ASCII diagrams,
-- layer-by-layer infra deep dive,
-- exact service boundaries,
-- storage layout, now split into `docs/data-layout.md`,
-- deployment topology,
-- retraining and rollback workflows,
-- tradeoff analysis for vector DB and orchestrator choices.
+## Runtime Ownership Matrix
+
+| Surface | Owns | Does not own | Local process |
+| --- | --- | --- | --- |
+| `backend/` | FastAPI serving, recommendation logic, online feature access, retrieval, ranking, and integration clients | Docker Compose manifests, Redpanda lifecycle, Dagster webserver/daemon | `uvicorn` from `backend/` |
+| `orchestration/` | Dagster user code, schedules, jobs, and orchestration packaging | Backend API runtime, shared service containers | `dg dev` from `orchestration/projects/recsys_orchestration/` |
+| `infra/local/` | Redpanda, Redis, Qdrant, MLflow, Prometheus, Grafana, local env defaults, broker bootstrap helper | FastAPI code, Dagster definitions, frontend code | `docker compose -f infra/local/docker-compose.yml ...` |
+| `frontend/` | Browser app, Vite workflow, HTTP client layer | Shared infra containers, backend internals, Dagster runtime | `vite` outside Compose |
+| `ops/observability/` | Prometheus and Grafana provisioning assets | Application business logic, service lifecycle commands | Mounted into infra-owned services |
+| future `simulator/` | Synthetic event generation and demo traffic | Backend serving and shared service lifecycle | Direct Python or orchestrated jobs |
+| future `pipelines/` | Batch normalization, feature backfills, training-set assembly, offline jobs | Online API serving and shared service lifecycle | Direct Python or orchestrated jobs |
+
+## Local Development Process Boundaries
+
+Local development is intentionally split by runtime ownership:
+
+1. Shared services start from `infra/local/` through Docker Compose.
+2. The backend API starts directly from `backend/` with `uvicorn`.
+3. Dagster starts directly from the orchestration workspace with `dg dev`.
+4. The future frontend starts directly from its own Vite workspace.
+
+This keeps edit-refresh loops fast for application code while preserving a realistic split between
+application runtimes and shared platform dependencies.

@@ -124,6 +124,17 @@ This document defines the first offline feature-platform contract for training a
 - Static views are snapped as of the training run snapshot date.
 - Event-time views must be filtered strictly to records earlier than the label timestamp.
 
+## Point-in-Time Invariants
+- Event ordering is defined by `(event_time, event_id)` and must remain stable across package boundaries.
+- Feature rows must never include facts from the label event itself or later events.
+- Every label row must preserve timestamp provenance back to `transactions_normalized.event_time`.
+- Candidate negatives must use the same label timestamp cutoff as observed positives.
+- Replay-derived validations must remain deterministic for the same normalized inputs and seed configuration.
+
+## Ownership Rules
+- `pipelines/` owns PIT joins, historical feature backfills, Feast historical retrieval, and ranking-dataset assembly.
+- `backend/` may validate or consume the resulting offline artifacts, but it should not become the implementation owner of PIT builders.
+
 ## Batch Scoring Guidance
 - Customer and article static views can be materialized daily.
 - Activity and demand aggregates can be recomputed on a daily batch schedule for offline scoring.

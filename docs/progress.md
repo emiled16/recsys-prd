@@ -85,3 +85,26 @@ This is the append-only execution log for the recommendation system project. Eac
 [2026-04-02 03:16:00] [plan v1.4] [DONE] T64: Updated ranking training to emit MLflow run metadata, params, metrics, and artifacts while preserving local manifests and offline fallback retrieval
 [2026-04-02 03:24:00] [plan v1.4] [START] T65: Implement an MLflow model registrar for trained ranking models
 [2026-04-02 03:24:00] [plan v1.4] [DONE] T65: Updated ranking registration to call the MLflow model registrar and persist MLflow model-version metadata alongside local registry lineage
+
+---
+## Plan v1.6
+[2026-04-02 17:50:12] [plan v1.6] [START] T102: Publish a runtime ownership matrix for backend, simulator, pipelines, orchestration, frontend, infra, and ops
+[2026-04-02 17:50:12] [plan v1.6] [START] T103: Move local shared-service definitions into an infra-owned local runtime layout
+[2026-04-02 17:50:12] [plan v1.6] [START] T104: Create a dedicated orchestration workspace for Dagster user code, webserver, daemon, and workspace configuration
+[2026-04-02 17:50:12] [plan v1.6] [START] T105: Define local development process boundaries for backend, frontend, orchestration, and infra
+[2026-04-02 17:50:12] [plan v1.6] [START] T106: Refactor backend code so broker, orchestration, and service bootstrap concerns are configuration-driven integrations only
+[2026-04-02 17:50:12] [plan v1.6] [DONE] T102: Added a runtime ownership matrix and M1 topology guidance to the system design, decisions log, and repo README
+[2026-04-02 17:50:12] [plan v1.6] [DONE] T103: Created an infra-owned local runtime layout with canonical Compose and broker bootstrap assets under infra/local
+[2026-04-02 17:50:12] [plan v1.6] [DONE] T104: Moved Dagster definitions into the top-level orchestration project and updated orchestration workspace documentation
+[2026-04-02 17:50:12] [plan v1.6] [DONE] T105: Published explicit local run boundaries for backend, orchestration, infra, and the future frontend workflow
+[2026-04-02 17:50:12] [plan v1.6] [DONE] T106: Removed backend-owned runtime bootstrap CLI and Dagster module ownership, and aligned backend broker defaults with external local infra access
+[2026-04-02 18:45:48] [plan v1.6] [START] T107: Create a dedicated simulator package for synthetic events, replay manifests, and fake traffic generation
+[2026-04-02 18:45:48] [plan v1.6] [START] T108: Create a dedicated pipelines package for normalization, Feast materialization, PIT joins, feature backfills, and ranking dataset assembly
+[2026-04-02 18:45:48] [plan v1.6] [START] T109: Define stable storage and schema contracts between simulator outputs, pipeline outputs, and backend inputs
+[2026-04-02 18:45:48] [plan v1.6] [START] T110: Preserve point-in-time correctness across the package split
+[2026-04-02 18:45:48] [plan v1.6] [START] T111: Add integration tests that validate simulator-to-backend and pipelines-to-backend boundaries
+[2026-04-02 18:45:48] [plan v1.6] [DONE] T107: Added top-level simulator-owned replay, event-generation, validation, and contract modules with backend compatibility wrappers
+[2026-04-02 18:45:48] [plan v1.6] [DONE] T108: Added a top-level pipelines package for normalization, PIT dataset building, Feast batch flows, and ranking-dataset assembly with backend compatibility wrappers
+[2026-04-02 18:45:48] [plan v1.6] [DONE] T109: Updated the data, dataset, and event contracts to define artifact ownership and stable simulator/pipelines-to-backend handoffs
+[2026-04-02 18:45:48] [plan v1.6] [DONE] T110: Documented the package-split PIT invariants and preserved the existing leakage-safe builders behind the pipelines-owned boundary
+[2026-04-02 18:45:48] [plan v1.6] [DONE] T111: Added boundary tests that exercise simulator replay into backend online features and pipelines outputs into backend parity validation
